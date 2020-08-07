@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Stride:
+class StrideOver:
     def __init__(self, split_size: tuple, img_size: tuple):
         """
         W = Columns
@@ -9,11 +9,18 @@ class Stride:
 
         Input = W x H
 
-        :param split_size:
-        :param img_size:
+        :param split_size: tuple(W x H), Size to split the Image in, typically smaller than img_size
+        :param img_size: tuple(W x H X 3), Size on which split operation is to be performed
         """
+        if split_size[0] > img_size[0] or split_size[1] > img_size[1]:
+            raise ValueError(
+                "Size to Split Can't Be Greater than Image, Given {},"
+                " Expected <= {}".format(split_size, (img_size[0], img_size[1]))
+            )
+
         assert len(img_size) == 3, "Pass Image size in w x h x b"
         assert len(split_size) == 2, "Pass Split size in w x h"
+
         self._data = None
         self.img_size = img_size
         self.windows = self.get_windows(split_size, img_size)
@@ -28,6 +35,10 @@ class Stride:
     @staticmethod
     def get_windows(split_size: tuple, img_size: tuple) -> list:
         """
+        Provides collection of Windows of split_size over img_size, The functions will yield non overlapping
+        window if img_size / split_size is divisible, if that's not the case then the function will adjust
+        the windows accordingly to accommodate the split_size and yield overlapping windows
+
 
         :param split_size:
         :param img_size:
