@@ -20,7 +20,7 @@ class SplitGeoReference:
 
         self.stride = Stride(self.split_size, self.img_size)
 
-    def split_geo_reference_images_in_dir(self, dir_path: str):
+    def perform_split(self, dir_path: str):
         """
 
         :param dir_path:
