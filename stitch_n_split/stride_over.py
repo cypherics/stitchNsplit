@@ -3,8 +3,17 @@ import numpy as np
 
 class Stride:
     def __init__(self, split_size: tuple, img_size: tuple):
+        """
+        W = Columns
+        H = Rows
+
+        Input = W x H
+
+        :param split_size:
+        :param img_size:
+        """
         assert len(img_size) == 3, "Pass Image size in w x h x b"
-        assert len(split_size) == 2, "Pass Split size in w x b"
+        assert len(split_size) == 2, "Pass Split size in w x h"
         self._data = None
         self.img_size = img_size
         self.windows = self.get_windows(split_size, img_size)
@@ -18,8 +27,14 @@ class Stride:
 
     @staticmethod
     def get_windows(split_size: tuple, img_size: tuple) -> list:
+        """
+
+        :param split_size:
+        :param img_size:
+        :return:
+        """
         cropped_windows = list()
-        split_row, split_col = split_size
+        split_col, split_row = split_size
 
         img_row = img_size[0]
         img_col = img_size[1]
