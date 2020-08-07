@@ -20,7 +20,7 @@ class SplitNonGeoReference:
 
         self.stride = Stride(self.split_size, self.img_size)
 
-    def split_non_geo_reference_images_in_dir(self, dir_path: str):
+    def perform_split(self, dir_path: str):
         """
 
         :param dir_path:
@@ -36,8 +36,9 @@ class SplitNonGeoReference:
             image = open_image(file_path)
             w, h, b = image.shape
             if b > 3:
-                raise ValueError("For Non Geo Reference Imagery More than 3 band is not supported")
-
+                raise ValueError(
+                    "For Non Geo Reference Imagery More than 3 band is not supported"
+                )
             image_save_path = os.path.join(save_path, file)
             self._split_image(image, image_save_path)
 
@@ -50,16 +51,10 @@ class SplitNonGeoReference:
         for index, tiff_window in zip(
             range(0, len(self.stride.windows)), self.stride.windows
         ):
-            tiff_window = (
-                tiff_window[0][0],
-                tiff_window[0][1],
-                tiff_window[1][0],
-                tiff_window[1][1],
-            )
-            split_image, kwargs_split_image = self._extract_data(image, tiff_window)
+            split_image = self._extract_data(image, tiff_window)
             split_path = image_save_path.split(".")
             save_path = "{}_{}.{}".format(split_path[0], index, split_path[-1])
-            save_image(save_path, split_image, **kwargs_split_image)
+            save_image(save_path, split_image)
 
     @staticmethod
     def _extract_data(image: np.ndarray, window: tuple) -> np.ndarray:
@@ -70,13 +65,11 @@ class SplitNonGeoReference:
         :return:
         """
 
-        return image[window[0] : window[1], window[2] : window[3]]
+        return image[window[0][0] : window[0][1], window[1][0] : window[1][1]]
 
     def win_number_split(self, image: np.ndarray, win_number: int) -> np.ndarray:
         window = self.stride.windows[win_number]
-        window = (window[0][0], window[0][1], window[1][0], window[1][1])
         return self._extract_data(image, window)
 
     def window_split(self, image: np.ndarray, window: tuple) -> np.ndarray:
-        window = (window[0][0], window[0][1], window[1][0], window[1][1])
         return self._extract_data(image, window)
