@@ -4,7 +4,7 @@ import time
 
 import rasterio
 
-from stitch_n_split.stride import StrideOver
+from stitch_n_split.stride import StrideImage
 from stitch_n_split.utility import make_save_dir, open_image, save_image
 
 
@@ -23,7 +23,7 @@ class Split:
         self.split_size = split_size
         self.img_size = img_size
 
-        self.stride = StrideOver(self.split_size, self.img_size)
+        self.stride = StrideImage(self.split_size, self.img_size)
 
     def perform_split(self, dir_path: str):
         """
