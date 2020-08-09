@@ -4,7 +4,7 @@ import time
 
 import rasterio
 
-from stitch_n_split.stride import StrideImage
+from stitch_n_split.windows import Window
 from stitch_n_split.utility import make_save_dir, open_image, save_image
 
 
@@ -12,8 +12,8 @@ class Split:
     def __init__(self, split_size: tuple, img_size: tuple):
         """
 
-        :param split_size: tuple(W x H), Size to split1 the Image in, typically smaller than img_size
-        :param img_size: tuple(W x H X 3), Size on which split1 operation is to be performed
+        :param split_size: tuple(W x H X B), Size to split1 the Image in, typically smaller than img_size
+        :param img_size: tuple(W x H X B), Size on which split1 operation is to be performed
         """
         if split_size[0] > img_size[0] or split_size[1] > img_size[1]:
             raise ValueError(
@@ -23,9 +23,15 @@ class Split:
         self.split_size = split_size
         self.img_size = img_size
 
-        self.stride = StrideImage(self.split_size, self.img_size)
+        self.stride = Window.image_windows(self.split_size, self.img_size)
 
-    def perform_split(self, dir_path: str):
+    def __len__(self):
+        return len(self.stride.windows)
+
+    def __getitem__(self, index):
+        return index, self.stride.windows[index]
+
+    def perform_directory_split(self, dir_path: str):
         """
 
         :param dir_path: dir path over which split1 is to be performed
@@ -75,7 +81,7 @@ class SplitNonGeo(Split):
         """
         super().__init__(split_size, img_size)
 
-    def perform_split(self, dir_path: str):
+    def perform_directory_split(self, dir_path: str):
         """
 
         :param dir_path: str
@@ -131,7 +137,7 @@ class SplitGeo(Split):
         """
         super().__init__(split_size, img_size)
 
-    def perform_split(self, dir_path: str):
+    def perform_directory_split(self, dir_path: str):
         """
         The images in the directory must have .tif extention
 
