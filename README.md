@@ -16,9 +16,9 @@ thus preserving the over all reference
     > Geo Reference imagery must be of [tiff](https://en.wikipedia.org/wiki/TIFF) format.
 
 - ##### Non GeoReferenced 
-    For Non GeoReferenced the split is straight forward, it gets cut in to specified dimension
+    For Non GeoReferenced the split is straight forward, it gets cropped in to specified dimension
 
-*_usage_:*
+*_Usage_:*
 ```python
 from stitch_n_split.split import SplitGeo
 split = SplitGeo(split_size=(124, 267), img_size=(512, 512))
@@ -28,7 +28,7 @@ Instead of Splitting the whole directory, single image split operation can also 
 where the function iterates over the windows, An Image split can either be performed by using *window number* or the *window*
 itself
 
-*_iterator usage using window_:*
+*_Iterator usage using window_:*
 ```python
 from stitch_n_split.split import SplitGeo
 from stitch_n_split.utility import open_image
@@ -39,7 +39,7 @@ for win_number, window in split:
     split_image = split.window_split(image, window)
     # perform operation ....
 ```
-*_iterator usage using window number_:*
+*_Iterator usage using window number_:*
 ```python
 from stitch_n_split.split import SplitGeo
 from stitch_n_split.utility import open_image
@@ -60,7 +60,7 @@ While Performing Stitch if the code encounters any overlapping images, it merges
 hampering the pixel information 
 
 
-*_using split and stitch together_:*
+*_Using splitNstitch together_:*
 ```python
 from stitch_n_split.stitch import Stitch
 from stitch_n_split.utility import save_image
@@ -78,7 +78,7 @@ for win_number, window in split:
     stitched_image = Stitch.stitch_image(split_image, stitched_image, window)
 save_image("path_to_save", stitched_image)
 ``` 
-> Stitching Of GeoReference is Not Supported Yet
+> Stitching Of GeoReference is Not Yet Supported
 
 ### Potential Use
 One Use case where stitch and split is preferred is, while performing Deep Neural Network Inference, while dealing with
