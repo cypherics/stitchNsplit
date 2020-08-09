@@ -25,7 +25,7 @@ split = SplitGeo(split_size=(124, 267), img_size=(512, 512))
 split.perform_directory_split("dir_path")
 ```
 Instead of Splitting the whole directory, single image split operation can also be performed by using split as iterator,
-where the function iterates over the windows, An Image split can either be performed by using *window number* or the *window*
+where the function iterates over the windows, An Image split can either be performed by providing the *window number* or the *window*
 itself
 
 *_Iterator usage using window_:*
@@ -59,17 +59,18 @@ the <code>stitch_image</code> method
 While Performing Stitch if the code encounters any overlapping images, it merges them out seamlessly, without
 hampering the pixel information 
 
+For any given image it could be stitched to a new image by just providing either win number or the window.
 
 *_Using splitNstitch together_:*
 ```python
 from stitch_n_split.stitch import Stitch
 from stitch_n_split.utility import save_image
-from stitch_n_split.split import SplitGeo
+from stitch_n_split.split import SplitNonGeo
 from stitch_n_split.utility import open_image
 import numpy as np
 
-split = SplitGeo(split_size=(124, 267), img_size=(512, 512, 3))
-image = open_image("img_path", is_geo_reference=True)
+split = SplitNonGeo(split_size=(124, 267), img_size=(512, 512, 3))
+image = open_image("img_path")
 stitched_image = np.zeros((512, 512, 3))
 
 for win_number, window in split:
@@ -89,11 +90,11 @@ on images after they have been reduced and then stitching the prediction back up
 ```python
 from stitch_n_split.stitch import Stitch
 from stitch_n_split.utility import save_image
-from stitch_n_split.split import SplitGeo
+from stitch_n_split.split import SplitNonGeo
 from stitch_n_split.utility import open_image
 import numpy as np
 
-split = SplitGeo(split_size=(124, 267), img_size=(512, 512, 3))
+split = SplitNonGeo(split_size=(124, 267), img_size=(512, 512, 3))
 for file in files:
     image = open_image(file)
     stitched_prediction = np.zeros(image.shape)
