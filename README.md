@@ -22,15 +22,15 @@ Overlapping windows are generated only when required.
      <td>Images After Split</td>
   </tr>
   <tr>
-    <td><img src="https://user-images.githubusercontent.com/24665570/89780629-73256d80-db2f-11ea-9db5-ee50573d8c6d.png" width=600 height=400></td>
-    <td><img src="https://user-images.githubusercontent.com/24665570/89780554-483b1980-db2f-11ea-8830-d13c728eadcd.png" width=2356 height=400></td>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89780629-73256d80-db2f-11ea-9db5-ee50573d8c6d.png" width=600 height=200></td>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89780554-483b1980-db2f-11ea-8830-d13c728eadcd.png" width=2356 height=200></td>
   </tr>
  </table>
  
 - ##### Geo Referenced
-    GeoReferenced Imagery have coordinate information stored in them along with a lot of meta associated with it.
-This is well considered while splitting geo referenced imagery, assigning correct reference information to the cut images 
-thus preserving the over all reference 
+    GeoReferenced Imagery have coordinate information stored in them, along with a lot of meta data associated with it.
+This is very much considered while splitting geo referenced imagery, assigning correct reference information to the cut images,
+thus preserving the over all geo reference information 
     > Geo Reference imagery must be of [tiff](https://en.wikipedia.org/wiki/TIFF) format.
 
 - ##### Non GeoReferenced 
@@ -74,10 +74,10 @@ for win_number, window in split:
 After a Split Operation is performed, one might require to stitch the images back up, that could be achieved easily by calling
 the <code>stitch_image</code> method
 
-While Performing Stitch if the code encounters any overlapping images, it merges them out seamlessly, without
-hampering the pixel information 
+While Performing Stitch if the code encounters an overlapping window, it merges it out seamlessly, without
+hampering the pixel information and image dimension
 
-For any given image it could be stitched to a new image by just providing either win number or the window.
+Every Split image can be associated to the original image by looking at either the window number or the window itself.
 
 *_Using stitchNsplit together_:*
 ```python
@@ -102,11 +102,12 @@ save_image("path_to_save", stitched_image)
 ### Potential Use for stitchNsplit
 
 Practical use for stitchNsplit is where an image with overly large dimension is available and the task defined by the user
-requires a much smaller dimension rather than the over sized image, for such task, the image have to be split and store the image to accomodate the 
-task requirement, which is not at all feasible, th smart way would be to split and stitch the image on the fly without ever have to store the image explicitly
+requires a much smaller dimension, rather than the provided over sized image, for such task, the image must be split and stored in order to accommodate the 
+task requirement, which not be the feasible solution to the problem, the better way would be to split and stitch the image
+on the fly without ever having to store it.
 
-One use case where stitchNsplit is the preferred library, is while performing Deep Neural Network Inference. While dealing with
-imagery for DNN, the imagery available might be quite large in size _`in multiple of thousand`_ and performing prediction might 
+One use case where stitchNsplit is preferred, is while performing Deep Neural Network Inference. While dealing with
+imagery for DNN, the imagery available might be quite large in size _`in multiple of thousand`_ and performing inference on such large dimension might 
 not be a viable option and neither splitting and storing the image, as one requires high memory and other requires excellent storage capacity.
 The most suitable choice would be to split and stitch the image on the fly. 
 
@@ -151,8 +152,8 @@ mesh in two forms either as a overlapping grid or non overlapping grid.
 - #### NonOverlapping Grid
     
     No matter what the provided grid size, the goal is to find a grid size which can be evenly distributed over the
-    provided mesh size, if the provided sizes present the possibility of overlap then the size of the 
-    grid is adjusted to provide non overlapping grid
+    provided mesh size, if the provided sizes presents the possibility of a overlap then the size of the 
+    grid is adjusted, to provide non overlapping grid
     
     When will my Grid Size Change
     <code>if mesh size % grid size</code> then the grid size will be changed
@@ -168,7 +169,7 @@ mesh in two forms either as a overlapping grid or non overlapping grid.
   </tr>
  </table>
 
-In Both cases the Mesh is computed over `mesh size = (10000, 10000)` and `grid size = (2587, 3000, 3)`, 
+In The above Image the mesh is computed over `mesh size = (10000, 10000)` and `grid size = (2587, 3000, 3)`, 
 the number of grid produced are same for both, the only difference is the overlapping mesh has adjusted
 grid size from original, to <code>mesh size // (mesh size / grid size)</code> i.e in this case to `(2500, 2500)`
 
@@ -178,8 +179,7 @@ Whenever image geo reference information is available, the the computation of gr
 the language that could be related to easily, e.g. create a mesh of `10000 pixel x 10000 pixel` which is equivalent to an image that is represented
 by `10000 width x 10000 height`
 
-*The required geo reference information is reference coordinates of the image and the pixel resolution for computation
- of mesh and if the pixel resolution information is not provided, use this [link](https://blogs.bing.com/maps/2006/02/25/map-control-zoom-levels-gt-resolution)
+>*The geo reference information required for mesh creation, is reference coordinates of the image along with the pixel resolution of the image. if the pixel resolution information is not available, use this [link](https://blogs.bing.com/maps/2006/02/25/map-control-zoom-levels-gt-resolution)
  to approximate the pixel resolution based on the zoom level*
 
 _Computing Mesh with user provided grid size and using the image information just as a starting point_:
