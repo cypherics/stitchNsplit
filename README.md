@@ -184,31 +184,31 @@ by `10000 width x 10000 height`
 
 _Computing Mesh with user provided grid size and using the image information just as a starting point_:
 ```python
-from stitch_n_split.split.grid import GeoGrid
+from stitch_n_split.split.grid import GeoInfo, mesh_from_geo_transform, mesh_from_pixel_resolution
 from stitch_n_split.utility import open_image
 
 image = open_image(r"image_used_starting_point_for_compuation.tif", is_geo_reference=True)
 
 # This will return overlapping grid if any
-geo_grid_overlap = GeoGrid.mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, bounds=None, grid_size=(2587, 3000, 3))
+geo_grid_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, bounds=None, grid_size=(2587, 3000, 3))
 
 # if want non overlapping grid set the overlap variable to False
-geo_grid_non_overlap = GeoGrid.mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, bounds=None, grid_size=(2587, 3000, 3), overlap=False)
+geo_grid_non_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, bounds=None, grid_size=(2587, 3000, 3), overlap=False)
 
-for grid in geo_grid_overlap.grid_data:
-    grid_extent = grid[0]
+for grid in geo_grid_overlap.extent():
+    print(grid)
     # perform operation on grid extent
 ``` 
-_Computing Mesh with grid size same as input image, the mesh will be computed accordingly_:
+_Compute Mesh with grid size same as input image_:
 
 ```python
-from stitch_n_split.split.grid import GeoGrid
+from stitch_n_split.split.grid import mesh_from_geo_transform
 from stitch_n_split.utility import open_image
 
 image = open_image(r"image_used_starting_point_for_compuation.tif", is_geo_reference=True)
 
 # This will return overlapping grid if any
-geo_grid_overlap = GeoGrid.mesh_from_geo_transform(grid_geo_transform=image.transform, bounds=image.bounds, grid_size=(2587, 3000, 3))
+geo_grid_overlap = mesh_from_geo_transform(grid_geo_transform=image.transform, bounds=image.bounds, grid_size=(2587, 3000, 3))
 ``` 
 
 

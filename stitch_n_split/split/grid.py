@@ -3,16 +3,65 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-from collections import OrderedDict
 
 from affine import Affine
 
-from stitch_n_split.utility import Printer
-from stitch_n_split.windows import Window
+
+class GeoGrid:
+    def _compute_max_x(self, scale: float):
+        """
+        Compute the the max_x bounded within complete_size
+        :param scale: how far max_x should grow, when scale is 1, it will grow in amount propotional to complete_size
+        :return:
+        """
+        raise NotImplementedError
+
+    def _compute_min_y(self, scale: float):
+        """
+        Compute the the min_y bounded within complete_size
+        :param scale: how far min_y should grow, when scale is 1, it will grow in amount propotional to complete_size
+        :return:
+        """
+        raise NotImplementedError
+
+    def _compute_step(self):
+        """
+        Compute Step in X and Y direction
+        :return:
+        """
+
+        raise NotImplementedError
+
+    def _step_in_x(self, max_x, normalizer=1):
+        """
+        Step Size to take in X
+        :param max_x:
+        :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
+        :return:
+        """
+        raise NotImplementedError
+
+    def _step_in_y(self, min_y, normalizer=1):
+        """
+        Step Size to take in Y
+        :param min_y:
+        :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
+        :return:
+        """
+        raise NotImplementedError
+
+    def extent(self):
+        """
+        Compute Mesh
+
+        :return:
+        """
+
+        raise NotImplementedError
 
 
 @dataclass
-class ImageNonOverLapGeoGrid:
+class ImageNonOverLapGeoGrid(GeoGrid):
     """
     The Class will compute Grid bounded within complete_size to provide non overlapping grid,
     The class will adjust the grid to evenly fit the number of tiles
@@ -38,16 +87,6 @@ class ImageNonOverLapGeoGrid:
     pixel_res: tuple
     sections: tuple
     mesh_size: tuple
-
-    def __len__(self):
-        return len(self.grid_data)
-
-    def __getitem__(self, index):
-        grid_data = list(self.grid_data.items())
-        return grid_data[index]
-
-    def __post_init__(self):
-        self.grid_data = self.compute_non_overlapping_grid()
 
     def _compute_step(self):
         """
@@ -96,27 +135,17 @@ class ImageNonOverLapGeoGrid:
         """
         return int(((self.src_max_y - min_y) / normalizer))
 
-    def compute_non_overlapping_grid(self):
+    def extent(self):
         """
         Compute non overlapping grid bounded within complete_size
 
         :return:
         """
 
-        grid_data = OrderedDict()
-
-        iterator = 0
-
         (step_in_x, step_in_y) = self._compute_step()
 
         for y in range(self.sections[1]):
             for x in range(self.sections[0]):
-                Printer.print(
-                    "Computing Grid {} / {}".format(
-                        iterator + 1, self.sections[1] * self.sections[0]
-                    )
-                )
-
                 tx_start = x * step_in_x + self.src_min_x
 
                 ty_start = (
@@ -127,15 +156,11 @@ class ImageNonOverLapGeoGrid:
                 tx_end = tx_start + step_in_x - 1
                 ty_end = ty_start + step_in_y - 1
 
-                grid_data[(tx_start, ty_start, tx_end, ty_end)] = {
-                    "window_position": iterator
-                }
-                iterator += 1
-        return grid_data
+                yield tx_start, ty_start, tx_end, ty_end
 
 
 @dataclass
-class ImageOverLapGeoGrid:
+class ImageOverLapGeoGrid(GeoGrid):
     """
     The Class will compute Grid bounded within complete_size and if the provided grid size overlaps, the the class will
     tune accordingly to provide overlapping grid, The class wont hamper the grid size in any manner, it will find all
@@ -164,16 +189,6 @@ class ImageOverLapGeoGrid:
     sections: tuple
     grid_size: tuple
     mesh_size: tuple
-
-    def __len__(self):
-        return len(self.grid_data)
-
-    def __getitem__(self, index):
-        grid_data = list(self.grid_data.items())
-        return grid_data[index]
-
-    def __post_init__(self):
-        self.grid_data = self.compute_overlapping_grid()
 
     def _is_overlap_in_col_direction(self):
         """
@@ -261,26 +276,22 @@ class ImageOverLapGeoGrid:
             overlap_step_in_y = self._step_in_y(overlap_min_y)
         return overlap_step_in_x, overlap_step_in_y
 
-    def compute_overlapping_grid(self):
+    def _compute_step(self):
+        return self._compute_buffer_step(), self._compute_overlap_step()
+
+    def extent(self):
         """
         Compute Overlapping Grid
         :return:
         """
 
-        grid_data = OrderedDict()
-
-        iterator = 0
-
-        (buffered_step_in_x, buffered_step_in_y) = self._compute_buffer_step()
-        (overlap_step_in_x, overlap_step_in_y) = self._compute_overlap_step()
+        (
+            (buffered_step_in_x, buffered_step_in_y),
+            (overlap_step_in_x, overlap_step_in_y),
+        ) = self._compute_step()
 
         for y in range(self.sections[1]):
             for x in range(self.sections[0]):
-                Printer.print(
-                    "Computing Grid {} / {}".format(
-                        iterator + 1, self.sections[1] * self.sections[0]
-                    )
-                )
                 if (x == self.sections[0] - 1) and self._is_overlap_in_col_direction():
 
                     tx_start = overlap_step_in_x + self.src_min_x
@@ -301,23 +312,16 @@ class ImageOverLapGeoGrid:
                 tx_end = tx_start + buffered_step_in_x - 1
                 ty_end = ty_start + buffered_step_in_y - 1
 
-                grid_data[(tx_start, ty_start, tx_end, ty_end)] = {
-                    "window_position": iterator
-                }
-                iterator += 1
-        return grid_data
+                yield tx_start, ty_start, tx_end, ty_end
 
 
-class GeoGrid:
-    def __init__(self, grid_data):
-        self.grid_data = grid_data
-
+class GeoInfo:
     @staticmethod
-    def _get_min_x_and_max_y(transform: Affine) -> (float, float):
+    def get_min_x_and_max_y(transform: Affine) -> (float, float):
         return transform[2], transform[5]
 
     @staticmethod
-    def _get_pixel_resolution(transform: Affine) -> (float, float):
+    def get_pixel_resolution(transform: Affine) -> (float, float):
         """
         Pixel Resolution
         :param transform:
@@ -326,7 +330,7 @@ class GeoGrid:
         return transform[0], transform[4]
 
     @staticmethod
-    def _compute_num_of_col_and_ros(grid_size: tuple, mesh_size: tuple):
+    def compute_num_of_col_and_ros(grid_size: tuple, mesh_size: tuple):
         """
         num_col grids will fit in x direction
         num_row grids will fit in Y direction
@@ -340,108 +344,102 @@ class GeoGrid:
         return num_col, num_row
 
     @staticmethod
-    def _compute_dimension(bounds, res: tuple):
+    def compute_dimension(bounds, res: tuple):
         output_width = int(math.ceil((bounds[2] - bounds[0]) / res[0]))
         output_height = int(math.ceil((bounds[3] - bounds[1]) / (-res[1])))
         return output_width, output_height
 
-    @classmethod
-    def mesh_from_geo_transform(
-        cls,
-        grid_size=None,
-        mesh_size=None,
-        grid_geo_transform=None,
-        bounds=None,
-        overlap=True,
-    ):
-        """
 
-        :param overlap:
-        :param bounds:
-        :param grid_size: typical image size
-        :param mesh_size: size to which size of the image is to be extented, typically greater than gris size
-        :param grid_geo_transform: transform of the image which is used for grid size
-        :return:
-        """
+def mesh_from_geo_transform(
+    grid_size=None, mesh_size=None, grid_geo_transform=None, bounds=None, overlap=True,
+):
+    """
 
-        if grid_geo_transform is None:
-            raise ValueError("grid_transform can't be None")
-        if mesh_size is None:
-            raise ValueError("complete_size can't be None")
-        source_min_x, source_max_y = cls._get_min_x_and_max_y(grid_geo_transform)
-        res = cls._get_pixel_resolution(grid_geo_transform)
+    :param overlap:
+    :param bounds:
+    :param grid_size: typical image size
+    :param mesh_size: size to which size of the image is to be extented, typically greater than gris size
+    :param grid_geo_transform: transform of the image which is used for grid size
+    :return:
+    """
 
-        if grid_size is None:
-            if bounds is None:
-                raise ValueError("Bounds can't be None")
-            grid_size = cls._compute_dimension(bounds, res)
-        if grid_size[0] > mesh_size[0] or grid_size[1] > mesh_size[1]:
-            raise ValueError(
-                "Size to Split Can't Be Greater than Image, Given {},"
-                " Expected less than equal to {}".format(grid_size, mesh_size)
-            )
-        sections = cls._compute_num_of_col_and_ros(grid_size, mesh_size)
+    if grid_geo_transform is None:
+        raise ValueError("grid_transform can't be None")
+    if mesh_size is None:
+        raise ValueError("complete_size can't be None")
+    source_min_x, source_max_y = GeoInfo.get_min_x_and_max_y(grid_geo_transform)
+    res = GeoInfo.get_pixel_resolution(grid_geo_transform)
 
-        if overlap:
-            grid_data = ImageOverLapGeoGrid(
-                source_min_x, source_max_y, res, sections, grid_size, mesh_size
-            )
-        else:
-            grid_data = ImageNonOverLapGeoGrid(
-                source_min_x, source_max_y, res, sections, mesh_size
-            )
-        return cls(grid_data)
-
-    @classmethod
-    def mesh_from_pixel_resolution(
-        cls,
-        pixel_resolution=None,
-        mesh_size=None,
-        grid_geo_transform=None,
-        bounds=None,
-        overlap=True,
-    ):
-        """
-        https://blogs.bing.com/maps/2006/02/25/map-control-zoom-levels-gt-resolution
-        estimate pixel resolution based on zoom level
-
-        :param overlap:
-        :param bounds:
-        :param pixel_resolution: pixel resolution
-        :param mesh_size: size to which size of the image is to be extented, typically greater than gris size
-        :param grid_geo_transform: transform of the image which is used for grid size
-        :return:
-        """
-
-        if grid_geo_transform is None:
-            raise ValueError("grid_transform can't be None")
-        if mesh_size is None:
-            raise ValueError("complete_size can't be None")
-        if pixel_resolution is None:
-            raise ValueError("Pixel Resolution Can't be None")
-        if type(pixel_resolution) != tuple:
-            raise TypeError("Pixel Resolution Must Be tuple")
-        if len(pixel_resolution) != 2:
-            raise ValueError("Length of Pixel Resolution Must be 2")
+    if grid_size is None:
         if bounds is None:
             raise ValueError("Bounds can't be None")
-        source_min_x, source_max_y = cls._get_min_x_and_max_y(grid_geo_transform)
-        res = cls._get_pixel_resolution(grid_geo_transform)
+        grid_size = GeoInfo.compute_dimension(bounds, res)
+    if grid_size[0] > mesh_size[0] or grid_size[1] > mesh_size[1]:
+        raise ValueError(
+            "Size to Split Can't Be Greater than Image, Given {},"
+            " Expected less than equal to {}".format(grid_size, mesh_size)
+        )
+    sections = GeoInfo.compute_num_of_col_and_ros(grid_size, mesh_size)
 
-        grid_size = cls._compute_dimension(bounds, pixel_resolution)
-        if grid_size[0] > mesh_size[0] or grid_size[1] > mesh_size[1]:
-            raise ValueError(
-                "Size to Split Can't Be Greater than Image, Given {},"
-                " Expected less than equal to {}".format(grid_size, mesh_size)
-            )
-        sections = cls._compute_num_of_col_and_ros(grid_size, mesh_size)
+    if overlap:
+        grid_data = ImageOverLapGeoGrid(
+            source_min_x, source_max_y, res, sections, grid_size, mesh_size
+        )
+    else:
+        grid_data = ImageNonOverLapGeoGrid(
+            source_min_x, source_max_y, res, sections, mesh_size
+        )
+    return grid_data
 
-        if overlap:
-            grid_data = ImageOverLapGeoGrid(
-                source_min_x, source_max_y, res, sections, grid_size, mesh_size
-            )
-        else:
-            grid_data = ImageNonOverLapGeoGrid(
-                source_min_x, source_max_y, res, sections, mesh_size
-            )
-        return cls(grid_data)
+
+def mesh_from_pixel_resolution(
+    pixel_resolution=None,
+    mesh_size=None,
+    grid_geo_transform=None,
+    bounds=None,
+    overlap=True,
+):
+    """
+    https://blogs.bing.com/maps/2006/02/25/map-control-zoom-levels-gt-resolution
+    estimate pixel resolution based on zoom level
+
+    :param overlap:
+    :param bounds:
+    :param pixel_resolution: pixel resolution
+    :param mesh_size: size to which size of the image is to be extented, typically greater than gris size
+    :param grid_geo_transform: transform of the image which is used for grid size
+    :return:
+    """
+
+    if grid_geo_transform is None:
+        raise ValueError("grid_transform can't be None")
+    if mesh_size is None:
+        raise ValueError("complete_size can't be None")
+    if pixel_resolution is None:
+        raise ValueError("Pixel Resolution Can't be None")
+    if type(pixel_resolution) != tuple:
+        raise TypeError("Pixel Resolution Must Be tuple")
+    if len(pixel_resolution) != 2:
+        raise ValueError("Length of Pixel Resolution Must be 2")
+    if bounds is None:
+        raise ValueError("Bounds can't be None")
+    source_min_x, source_max_y = GeoInfo.get_min_x_and_max_y(grid_geo_transform)
+    res = GeoInfo.get_pixel_resolution(grid_geo_transform)
+
+    grid_size = GeoInfo.compute_dimension(bounds, pixel_resolution)
+    if grid_size[0] > mesh_size[0] or grid_size[1] > mesh_size[1]:
+        raise ValueError(
+            "Size to Split Can't Be Greater than Image, Given {},"
+            " Expected less than equal to {}".format(grid_size, mesh_size)
+        )
+    sections = GeoInfo.compute_num_of_col_and_ros(grid_size, mesh_size)
+
+    if overlap:
+        grid_data = ImageOverLapGeoGrid(
+            source_min_x, source_max_y, res, sections, grid_size, mesh_size
+        )
+    else:
+        grid_data = ImageNonOverLapGeoGrid(
+            source_min_x, source_max_y, res, sections, mesh_size
+        )
+    return grid_data
