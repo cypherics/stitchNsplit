@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 install_requires = [
     "rasterio == 1.1.5",
-    "opencv-python == 4.4.0",
+    "opencv-python >= 4.1.1",
     "affine == 2.3.0",
     "numpy == 1.19.1",
 ]
