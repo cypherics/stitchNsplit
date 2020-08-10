@@ -38,7 +38,7 @@ thus preserving the over all geo reference information
 
 *_Usage_:*
 ```python
-from stitch_n_split.spllit.images import SplitGeo
+from stitch_n_split.split.images import SplitGeo
 split = SplitGeo(split_size=(124, 267), img_size=(512, 512))
 split.perform_directory_split("dir_path")
 ```
@@ -48,7 +48,7 @@ itself
 
 *_Iterator usage using window_:*
 ```python
-from stitch_n_split.spllit.images import SplitGeo
+from stitch_n_split.split.images import SplitGeo
 from stitch_n_split.utility import open_image
 
 split = SplitGeo(split_size=(124, 267), img_size=(512, 512))
@@ -59,7 +59,7 @@ for win_number, window in split:
 ```
 *_Iterator usage using window number_:*
 ```python
-from stitch_n_split.spllit.images import SplitGeo
+from stitch_n_split.split.images import SplitGeo
 from stitch_n_split.utility import open_image
 
 split = SplitGeo(split_size=(124, 267), img_size=(512, 512))
@@ -83,7 +83,7 @@ Every Split image can be associated to the original image by looking at either t
 ```python
 from stitch_n_split.stitch.images import Stitch
 from stitch_n_split.utility import save_image
-from stitch_n_split.spllit.images import SplitNonGeo
+from stitch_n_split.split.images import SplitNonGeo
 from stitch_n_split.utility import open_image
 import numpy as np
 
@@ -115,7 +115,7 @@ The most suitable choice would be to split and stitch the image on the fly.
 ```python
 from stitch_n_split.stitch.images import Stitch
 from stitch_n_split.utility import save_image
-from stitch_n_split.spllit.images import SplitNonGeo
+from stitch_n_split.split.images import SplitNonGeo
 from stitch_n_split.utility import open_image
 import numpy as np
 
@@ -184,7 +184,7 @@ by `10000 width x 10000 height`
 
 _Computing Mesh with user provided grid size and using the image information just as a starting point_:
 ```python
-from stitch_n_split.spllit.grid import GeoGrid
+from stitch_n_split.split.grid import GeoGrid
 from stitch_n_split.utility import open_image
 
 image = open_image(r"image_used_starting_point_for_compuation.tif", is_geo_reference=True)
@@ -202,7 +202,7 @@ for grid in geo_grid_overlap.grid_data:
 _Computing Mesh with grid size same as input image, the mesh will be computed accordingly_:
 
 ```python
-from stitch_n_split.spllit.grid import GeoGrid
+from stitch_n_split.split.grid import GeoGrid
 from stitch_n_split.utility import open_image
 
 image = open_image(r"image_used_starting_point_for_compuation.tif", is_geo_reference=True)
