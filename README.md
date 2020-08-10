@@ -46,7 +46,7 @@ Instead of Splitting the whole directory, single image split operation can also 
 where the function iterates over the windows, An Image split can either be performed by providing the *window number* or the *window*
 itself
 
-*_Iterator usage using window_:*
+*_Split Iterator using window_:*
 ```python
 from stitch_n_split.split.images import SplitGeo
 from stitch_n_split.utility import open_image
@@ -57,7 +57,7 @@ for win_number, window in split:
     split_image = split.window_split(image, window)
     # perform operation ....
 ```
-*_Iterator usage using window number_:*
+*_Split Iterator using window number_:*
 ```python
 from stitch_n_split.split.images import SplitGeo
 from stitch_n_split.utility import open_image
