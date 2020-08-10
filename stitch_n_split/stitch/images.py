@@ -8,10 +8,7 @@ from stitch_n_split.windows import Window
 
 
 class Stitch:
-    """
-    The class makes an assumption that all the incoming images are in sequence to which a stitch is performed
 
-    """
     def __init__(self, src_size: tuple, dst_size: tuple):
         """
 
@@ -23,7 +20,6 @@ class Stitch:
                 "Size to Split Can't Be Greater than Image, Given {},"
                 " Expected <= {}".format(src_size, dst_size)
             )
-
         self.src_size = src_size
         self.dst_size = dst_size
 
@@ -85,6 +81,8 @@ class Stitch:
     def perform_stitch(self, dir_path: str):
 
         """
+        The methid makes an assumption that all the incoming images are in sequence to which a stitch is performed
+
         Stitch Images from the given directory based on the dst_size and src_size
         :param dir_path:
         :return:
