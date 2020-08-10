@@ -4,6 +4,11 @@
 
 A Python Library To Stitch And Split Images for any dimension, computing grid and windows over the specified dimension
 
+### Installation
+
+    pip install https://github.com/cypherics/stitchNsplit.git#egg=stitchNsplit
+    
+    
 ### Split
 
 Split Operation can be performed on two sets of Imagery, <b>Geo Referenced</b> and <b>Non Geo Referenced</b>
@@ -11,6 +16,17 @@ The Windows formed for the split operation are adjusted based on the split_size 
 <code>img_size%split_size != 0</code> is true, this suggests that there will be overlapping windows. 
 Overlapping windows are generated only when required. 
 
+<table>
+  <tr>
+    <td>Original Image</td>
+     <td>Images After Split</td>
+  </tr>
+  <tr>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89780629-73256d80-db2f-11ea-9db5-ee50573d8c6d.png" width=600 height=600></td>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89780554-483b1980-db2f-11ea-8830-d13c728eadcd.png" width=2356 height=621></td>
+  </tr>
+ </table>
+ 
 - ##### Geo Referenced
     GeoReferenced Imagery have coordinate information stored in them along with a lot of meta associated with it.
 This is well considered while splitting geo referenced imagery, assigning correct reference information to the cut images 
@@ -120,6 +136,8 @@ for file in files:
 
 The most common requirement in the world of GIS is to compute mesh, the library explores the idea of serving 
 mesh in two forms either as a overlapping grid or non overlapping grid. 
+
+![stitchNsplit](https://user-images.githubusercontent.com/24665570/89779619-6e5fba00-db2d-11ea-8705-d8ba781f72ea.gif)
 
 - #### OverLapped Grid
     
