@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -14,12 +15,27 @@ class ImageNonOverLapGeoGrid:
     """
     The Class will compute Grid bounded within complete_size to provide non overlapping grid,
     The class will adjust the grid to evenly fit the number of tiles
+
+    Working of this class depends on the geo reference information of the image which acts as the starting point
+
+    The geo reference information to be present in the image is source_min_x, source_max_y and pixel resolution
+
+    Based on the geo reference information present in the image, compute grid of size
+    complete_size // int(np.ceil(dst_img_size / src_img_size) over complete_size
+
+    Given an starting image size, final size and its transform this will find all the grid of size
+    complete_size // int(np.ceil(dst_img_size / src_img_size) between the given complete size
+
+    The start position of grid and the step size of grid is computed from the transform info provided, usually
+    present in geo referenced image
+
+    NOTE - The COORDINATES MUST BE IN `EPSG:26910`
     """
 
-    min_x: Any
-    max_y: Any
+    src_min_x: Any
+    src_max_y: Any
     pixel_res: tuple
-    tiles: tuple
+    sections: tuple
     complete_size: tuple
 
     def __len__(self):
@@ -40,8 +56,8 @@ class ImageNonOverLapGeoGrid:
         max_x = self._compute_max_x(self.complete_size[0])
         min_y = self._compute_min_y(self.complete_size[1])
 
-        step_in_x = self._step_in_x(max_x, self.tiles[0])
-        step_in_y = self._step_in_y(min_y, self.tiles[1])
+        step_in_x = self._step_in_x(max_x, self.sections[0])
+        step_in_y = self._step_in_y(min_y, self.sections[1])
 
         return step_in_x, step_in_y
 
@@ -51,7 +67,7 @@ class ImageNonOverLapGeoGrid:
         :param scale: how far max_x should grow, when scale is 1, it will grow in amount propotional to complete_size
         :return:
         """
-        return self.min_x + self.pixel_res[0] * scale
+        return self.src_min_x + self.pixel_res[0] * scale
 
     def _compute_min_y(self, scale: float):
         """
@@ -59,7 +75,7 @@ class ImageNonOverLapGeoGrid:
         :param scale: how far min_y should grow, when scale is 1, it will grow in amount propotional to complete_size
         :return:
         """
-        return self.max_y + self.pixel_res[1] * scale
+        return self.src_max_y + self.pixel_res[1] * scale
 
     def _step_in_x(self, max_x, normalizer=1):
         """
@@ -68,7 +84,7 @@ class ImageNonOverLapGeoGrid:
         :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
         :return:
         """
-        return int(((max_x - self.min_x) / normalizer))
+        return int(((max_x - self.src_min_x) / normalizer))
 
     def _step_in_y(self, min_y, normalizer=1):
         """
@@ -77,7 +93,7 @@ class ImageNonOverLapGeoGrid:
         :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
         :return:
         """
-        return int(((self.max_y - min_y) / normalizer))
+        return int(((self.src_max_y - min_y) / normalizer))
 
     def compute_non_overlapping_grid(self):
         """
@@ -91,22 +107,22 @@ class ImageNonOverLapGeoGrid:
         iterator = 0
         windows = Window.image_geo_windows(
             (
-                self.complete_size[0] // self.tiles[0],
-                self.complete_size[1] // self.tiles[1],
+                self.complete_size[0] // self.sections[0],
+                self.complete_size[1] // self.sections[1],
             ),
             self.complete_size,
         ).windows
 
         (step_in_x, step_in_y) = self._compute_step()
 
-        for y in range(self.tiles[1]):
-            for x in range(self.tiles[0]):
+        for y in range(self.sections[1]):
+            for x in range(self.sections[0]):
 
-                tx_start = x * step_in_x + self.min_x
+                tx_start = x * step_in_x + self.src_min_x
 
                 ty_start = (
                     y * step_in_y
-                    + self.max_y
+                    + self.src_max_y
                     + self.pixel_res[1] * self.complete_size[1]
                 )
                 tx_end = tx_start + step_in_x - 1
@@ -122,15 +138,31 @@ class ImageNonOverLapGeoGrid:
 @dataclass
 class ImageOverLapGeoGrid:
     """
-    The Class will compute Grid bounded within complete_size and if the provided grid size overlaps the the class will
+    The Class will compute Grid bounded within complete_size and if the provided grid size overlaps, the the class will
     tune accordingly to provide overlapping grid, The class wont hamper the grid size in any manner, it will find all
-    the possible grid of size that could fit in complete_size
+    the possible grid of size provided that could fit in complete_size
+
+    Working of this class depends on the geo reference information of the image which acts as the starting point
+
+    The geo reference information to be present in the image is source_min_x, source_max_y and pixel resolution
+
+    Based on the geo reference information present in the image, compute grid of size grid_size over complete_size
+
+    Given an starting image size, final size and its transform this will find all the grid of size image size
+    between the given complete size
+
+
+    The start position of grid and the step size of grid is computed from the transform info provided, usually
+    present in geo referenced image
+
+    NOTE - The COORDINATES MUST BE IN `EPSG:26910`
+
     """
 
-    min_x: Any
-    max_y: Any
+    src_min_x: Any
+    src_max_y: Any
     pixel_res: tuple
-    tiles: tuple
+    sections: tuple
     grid_size: tuple
     complete_size: tuple
 
@@ -167,11 +199,11 @@ class ImageOverLapGeoGrid:
 
         :return:
         """
-        buffer_max_x = self._compute_max_x(self.grid_size[0] * self.tiles[0])
-        buffer_min_y = self._compute_min_y(self.grid_size[1] * self.tiles[1])
+        buffer_max_x = self._compute_max_x(self.grid_size[0] * self.sections[0])
+        buffer_min_y = self._compute_min_y(self.grid_size[1] * self.sections[1])
 
-        buffered_step_in_x = self._step_in_x(buffer_max_x, self.tiles[0])
-        buffered_step_in_y = self._step_in_y(buffer_min_y, self.tiles[1])
+        buffered_step_in_x = self._step_in_x(buffer_max_x, self.sections[0])
+        buffered_step_in_y = self._step_in_y(buffer_min_y, self.sections[1])
 
         return buffered_step_in_x, buffered_step_in_y
 
@@ -181,7 +213,7 @@ class ImageOverLapGeoGrid:
         :param scale: how far max_x should grow, when scale is 1, it will grow in amount propotional to complete_size
         :return:
         """
-        return self.min_x + self.pixel_res[0] * scale
+        return self.src_min_x + self.pixel_res[0] * scale
 
     def _compute_min_y(self, scale: float):
         """
@@ -189,7 +221,7 @@ class ImageOverLapGeoGrid:
         :param scale: how far min_y should grow, when scale is 1, it will grow in amount propotional to complete_size
         :return:
         """
-        return self.max_y + self.pixel_res[1] * scale
+        return self.src_max_y + self.pixel_res[1] * scale
 
     def _step_in_x(self, max_x, normalizer=1):
         """
@@ -199,7 +231,7 @@ class ImageOverLapGeoGrid:
         :return:
         """
 
-        return int(((max_x - self.min_x) / normalizer))
+        return int(((max_x - self.src_min_x) / normalizer))
 
     def _step_in_y(self, min_y, normalizer=1):
         """
@@ -209,7 +241,7 @@ class ImageOverLapGeoGrid:
         :return:
         """
 
-        return int(((self.max_y - min_y) / normalizer))
+        return int(((self.src_max_y - min_y) / normalizer))
 
     def _compute_overlap_step(self):
         """
@@ -248,24 +280,24 @@ class ImageOverLapGeoGrid:
         (buffered_step_in_x, buffered_step_in_y) = self._compute_buffer_step()
         (overlap_step_in_x, overlap_step_in_y) = self._compute_overlap_step()
 
-        for y in range(self.tiles[1]):
-            for x in range(self.tiles[0]):
+        for y in range(self.sections[1]):
+            for x in range(self.sections[0]):
 
-                if (x == self.tiles[0] - 1) and self._is_overlap_in_col_direction():
+                if (x == self.sections[0] - 1) and self._is_overlap_in_col_direction():
 
-                    tx_start = x * overlap_step_in_x + self.min_x
+                    tx_start = x * overlap_step_in_x + self.src_min_x
                 else:
-                    tx_start = x * buffered_step_in_x + self.min_x
-                if y == (self.tiles[1] - 1) and self._is_overlap_in_row_direction():
+                    tx_start = x * buffered_step_in_x + self.src_min_x
+                if y == (self.sections[1] - 1) and self._is_overlap_in_row_direction():
                     ty_start = (
                         y * overlap_step_in_y
-                        + self.max_y
+                        + self.src_max_y
                         + self.pixel_res[1] * self.complete_size[1]
                     )
                 else:
                     ty_start = (
                         y * buffered_step_in_y
-                        + self.max_y
+                        + self.src_max_y
                         + self.pixel_res[1] * self.complete_size[1]
                     )
                 tx_end = tx_start + buffered_step_in_x - 1
@@ -296,65 +328,88 @@ class GeoGrid:
         return transform[0], transform[4]
 
     @staticmethod
-    def _compute_num_of_tiles(src_img_size: tuple, dst_img_size: tuple):
+    def _compute_num_of_col_and_ros(src_img_size: tuple, dst_img_size: tuple):
         """
         Computes How many Number of grids to draw
         :return: number of grid in x direction, number of grid in y direction
         """
-        col_tiles = int(np.ceil(dst_img_size[0] / src_img_size[0]))
-        row_tiles = int(np.ceil(dst_img_size[1] / src_img_size[1]))
+        num_col = int(np.ceil(dst_img_size[0] / src_img_size[0]))
+        num_row = int(np.ceil(dst_img_size[1] / src_img_size[1]))
 
-        return col_tiles, row_tiles
+        return num_col, num_row
+
+    @staticmethod
+    def _compute_dimension(bounds, res: tuple):
+        output_width = int(math.ceil((bounds[2] - bounds[0]) / res[0]))
+        output_height = int(math.ceil((bounds[3] - bounds[1]) / (-res[1])))
+        return output_width, output_height
 
     @classmethod
     def overlapping_grid_from_transform(
-        cls, grid_size: tuple, complete_size: tuple, grid_transform: Affine,
+        cls, grid_size=None, complete_size=None, grid_transform=None, bounds=None
     ):
         """
-        Given an starting image size, final size and its transform this will find all the grid of size image size
-        between the given complete size
 
+        :param bounds:
         :param grid_size: typical image size
         :param complete_size: size to which size of the image is to be extented, typically greater than gris size
         :param grid_transform: transform of the image which is used for grid size
         :return:
         """
 
+        if grid_transform is None:
+            raise ValueError("grid_transform can't be None")
+        if complete_size is None:
+            raise ValueError("complete_size can't be None")
+        source_min_x, source_max_y = cls._get_min_x_and_max_y(grid_transform)
+        res = cls._get_pixel_resolution(grid_transform)
+
+        if grid_size is None:
+            if bounds is None:
+                raise ValueError("Bounds can't be None")
+            grid_size = cls._compute_dimension(bounds, res)
         if grid_size[0] > complete_size[0] or grid_size[1] > complete_size[1]:
             raise ValueError(
                 "Size to Split Can't Be Greater than Image, Given {},"
                 " Expected less than equal to {}".format(grid_size, complete_size)
             )
-        source_min_x, source_max_y = cls._get_min_x_and_max_y(grid_transform)
-        res = cls._get_pixel_resolution(grid_transform)
-        tiles = cls._compute_num_of_tiles(grid_size, complete_size)
+        sections = cls._compute_num_of_col_and_ros(grid_size, complete_size)
         grid_data = ImageOverLapGeoGrid(
-            source_min_x, source_max_y, res, tiles, grid_size, complete_size
+            source_min_x, source_max_y, res, sections, grid_size, complete_size
         )
         return cls(grid_data)
 
     @classmethod
     def non_overlapping_grid_from_transform(
-        cls, grid_size: tuple, complete_size: tuple, grid_transform: Affine,
+        cls, grid_size=None, complete_size=None, grid_transform=None, bounds=None
     ):
         """
-        Given an starting image size, final size and its transform this will find all the grid of size image size
-        between the given complete size
 
+        :param bounds:
         :param grid_size: typical image size
         :param complete_size: size to which size of the image is to be extented, typically greater than gris size
         :param grid_transform: transform of the image which is used for grid size
         :return:
         """
+
+        if grid_transform is None:
+            raise ValueError("grid_transform can't be None")
+        if complete_size is None:
+            raise ValueError("complete_size can't be None")
+        source_min_x, source_max_y = cls._get_min_x_and_max_y(grid_transform)
+        res = cls._get_pixel_resolution(grid_transform)
+
+        if grid_size is None:
+            if bounds is None:
+                raise ValueError("Bounds can't be None")
+            grid_size = cls._compute_dimension(bounds, res)
         if grid_size[0] > complete_size[0] or grid_size[1] > complete_size[1]:
             raise ValueError(
                 "Size to Split Can't Be Greater than Image, Given {},"
                 " Expected less than equal to {}".format(grid_size, complete_size)
             )
-        source_min_x, source_max_y = cls._get_min_x_and_max_y(grid_transform)
-        res = cls._get_pixel_resolution(grid_transform)
-        tiles = cls._compute_num_of_tiles(grid_size, complete_size)
+        sections = cls._compute_num_of_col_and_ros(grid_size, complete_size)
         grid_data = ImageNonOverLapGeoGrid(
-            source_min_x, source_max_y, res, tiles, complete_size
+            source_min_x, source_max_y, res, sections, complete_size
         )
         return cls(grid_data)
