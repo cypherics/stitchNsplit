@@ -140,7 +140,7 @@ mesh in two forms either as a overlapping grid or non overlapping grid.
 
 ![stitchNsplit](https://user-images.githubusercontent.com/24665570/89779619-6e5fba00-db2d-11ea-8705-d8ba781f72ea.gif)
 
-- #### OverLapped Grid
+- #### OverLapping Grid
     
     The grid creation process assumes the provided grid size might not be evenly distributed over the mesh size and
     whenever such situation arises, the grid adjusts its position without compromising the grid size, thus generating 
@@ -164,8 +164,8 @@ mesh in two forms either as a overlapping grid or non overlapping grid.
      <td>Mesh with Non Overlapping Grid</td>
   </tr>
   <tr>
-    <td><img src="https://user-images.githubusercontent.com/24665570/89773311-49654a00-db21-11ea-9955-f1230d432989.png" width=812 height=700></td>
-    <td><img src="https://user-images.githubusercontent.com/24665570/89773649-f8a22100-db21-11ea-8bcc-deeb46939a51.png" width=812 height=700></td>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89773311-49654a00-db21-11ea-9955-f1230d432989.png" width=812 height=400></td>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89773649-f8a22100-db21-11ea-8bcc-deeb46939a51.png" width=812 height=400></td>
   </tr>
  </table>
 
