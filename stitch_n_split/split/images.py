@@ -4,7 +4,7 @@ import time
 
 import rasterio
 
-from stitch_n_split.windows import Window
+from stitch_n_split.windows import get_window
 from stitch_n_split.utility import make_save_dir, open_image, save_image, Printer
 
 
@@ -23,13 +23,13 @@ class Split:
         self.split_size = split_size
         self.img_size = img_size
 
-        self.stride = Window.image_windows(self.split_size, self.img_size)
+        self.window = get_window(self.split_size, self.img_size)
 
     def __len__(self):
-        return len(self.stride.windows)
+        return len(self.window.window_collection)
 
     def __getitem__(self, index):
-        return index, self.stride.windows[index]
+        return index, self.window.window_collection[index]
 
     def perform_directory_split(self, dir_path: str):
         """
@@ -59,13 +59,13 @@ class Split:
     def win_number_split(self, image, win_number: int):
         if type(win_number) != int:
             raise TypeError("Given {}, Expected {}".format(type(win_number), "Int"))
-        if win_number < 0 or win_number >= len(self.stride.windows):
+        if win_number < 0 or win_number >= len(self.window.window_collection):
             raise ValueError(
                 "Given {}, Expected In between {} to {}".format(
-                    win_number, 0, len(self.stride.windows)
+                    win_number, 0, len(self.window.window_collection)
                 )
             )
-        window = self.stride.windows[win_number]
+        window = self.window.window_collection[win_number]
         return self._extract_data(image, window)
 
     def window_split(self, image, window):
@@ -110,7 +110,7 @@ class SplitNonGeo(Split):
         :return:
         """
         for index, tiff_window in zip(
-            range(0, len(self.stride.windows)), self.stride.windows
+            range(0, len(self.window.window_collection)), self.window.window_collection
         ):
             split_image = self._extract_data(image, tiff_window)
             split_path = image_save_path.split(".")
@@ -164,7 +164,7 @@ class SplitGeo(Split):
         :return:
         """
         for index, tiff_window in zip(
-            range(0, len(self.stride.windows)), self.stride.windows
+            range(0, len(self.window.window_collection)), self.window.window_collection
         ):
             split_image, kwargs_split_image = self._extract_data(image, tiff_window)
             split_path = image_save_path.split(".")

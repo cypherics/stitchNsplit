@@ -2,18 +2,18 @@ import numpy as np
 
 
 class Window:
-    def __init__(self, windows: list):
-        self.windows = windows
+    def __init__(self, stride_size,  img_size):
+        self.stride_size = stride_size
+        self.img_size = img_size
+        self.window_collection = self.windows()
 
     def __len__(self):
-        return len(self.windows)
+        return len(self.window_collection)
 
-    def __getitem__(self, win_number):
-        window = self.windows[win_number]
-        return win_number, window
+    def __getitem__(self, index):
+        return index, self.window_collection[index]
 
-    @classmethod
-    def image_windows(cls, stride_size: tuple, img_size: tuple):
+    def windows(self):
         """
         W = Columns
         H = Rows
@@ -26,16 +26,17 @@ class Window:
 
         :return:
         """
-        if stride_size[0] > img_size[0] or stride_size[1] > img_size[1]:
+        if self.stride_size[0] > self.img_size[0] or self.stride_size[1] > self.img_size[1]:
             raise ValueError(
                 "Size to Split Can't Be Greater than Image, Given {},"
-                " Expected <= {}".format(stride_size, (img_size[0], img_size[1]))
+                " Expected <= {}".format(self.stride_size, (self.img_size[0], self.img_size[1]))
             )
         cropped_windows = list()
-        split_col, split_row = (stride_size[0], stride_size[1])
 
-        img_col = img_size[0]
-        img_row = img_size[1]
+        split_col, split_row = (self.stride_size[0], self.stride_size[1])
+
+        img_col = self.img_size[0]
+        img_row = self.img_size[1]
 
         iter_col = 1
         iter_row = 1
@@ -54,41 +55,15 @@ class Window:
                     cropped_windows.append(
                         ((row, row + split_row), (col, col + split_col))
                     )
-            iter_row = 1
-        return cls(cropped_windows)
+                iter_row = 1
+        return cropped_windows
 
-    @classmethod
-    def image_geo_windows(cls, stride_size: tuple, img_size: tuple):
-        """
-        Provides Window information while computing grid extent over geo referenced image
-        :param stride_size:
-        :param img_size:
-        :return:
-        """
-        if stride_size[0] > img_size[0] or stride_size[1] > img_size[1]:
-            raise ValueError(
-                "Size to Split Can't Be Greater than Image, Given {},"
-                " Expected <= {}".format(stride_size, (img_size[0], img_size[1]))
-            )
-        cropped_windows = list()
-        split_col, split_row = (stride_size[0], stride_size[1])
 
-        img_col = img_size[0]
-        img_row = img_size[1]
+def get_window(stride_size: tuple, img_size: tuple):
+    """
 
-        iter_col = 1
-        iter_row = 1
-
-        for row in range(0, img_row, split_row):
-            if iter_row == np.ceil(img_row / split_row):
-                row = img_row - split_row
-            else:
-                iter_row += 1
-            for col in range(img_col, 0, -split_col):
-                if iter_col == np.ceil(img_col / split_col):
-                    col = img_col - col
-                else:
-                    iter_col += 1
-                cropped_windows.append(((row, row + split_row), (col - split_col, col)))
-            iter_col = 1
-        return cls(cropped_windows)
+    :param stride_size:
+    :param img_size:
+    :return:
+    """
+    return Window(stride_size, img_size)
