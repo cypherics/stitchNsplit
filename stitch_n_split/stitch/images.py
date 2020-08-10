@@ -3,12 +3,11 @@ import time
 import numpy as np
 import os
 
-from stitch_n_split.utility import make_save_dir, open_image, save_image
+from stitch_n_split.utility import make_save_dir, open_image, save_image, Printer
 from stitch_n_split.windows import Window
 
 
 class Stitch:
-
     def __init__(self, src_size: tuple, dst_size: tuple):
         """
 
@@ -94,6 +93,12 @@ class Stitch:
         stitch_gen = self.stitch_generator(files)
 
         for i, collection in enumerate(stitch_gen):
+            Printer.print(
+                "Stitching In Progress for {} out of {}".format(
+                    (i + 1) * len(collection), len(files)
+                )
+            )
+
             stitched_image = np.zeros(self.dst_size)
 
             for iterator, file in enumerate(collection):

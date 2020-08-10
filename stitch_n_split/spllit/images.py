@@ -5,7 +5,7 @@ import time
 import rasterio
 
 from stitch_n_split.windows import Window
-from stitch_n_split.utility import make_save_dir, open_image, save_image
+from stitch_n_split.utility import make_save_dir, open_image, save_image, Printer
 
 
 class Split:
@@ -93,7 +93,7 @@ class SplitNonGeo(Split):
         )
         for iterator, file in enumerate(files):
             file_path = os.path.join(dir_path, file)
-
+            Printer.print("Split In Progress {} / {}".format(iterator + 1, len(files)))
             image = open_image(file_path)
             w, h, b = image.shape
             if b > 3:
@@ -149,6 +149,8 @@ class SplitGeo(Split):
             os.getcwd(), os.path.join("stitchNsplit_store", str(int(time.time())))
         )
         for iterator, file in enumerate(files):
+            Printer.print("Split In Progress {} / {}".format(iterator + 1, len(files)))
+
             file_path = os.path.join(dir_path, file)
 
             image = open_image(file_path, is_geo_reference=True)

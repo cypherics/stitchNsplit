@@ -7,6 +7,7 @@ from collections import OrderedDict
 
 from affine import Affine
 
+from stitch_n_split.utility import Printer
 from stitch_n_split.windows import Window
 
 
@@ -105,18 +106,16 @@ class ImageNonOverLapGeoGrid:
         grid_data = OrderedDict()
 
         iterator = 0
-        windows = Window.image_geo_windows(
-            (
-                self.mesh_size[0] // self.sections[0],
-                self.mesh_size[1] // self.sections[1],
-            ),
-            self.mesh_size,
-        ).windows
 
         (step_in_x, step_in_y) = self._compute_step()
 
         for y in range(self.sections[1]):
             for x in range(self.sections[0]):
+                Printer.print(
+                    "Computing Grid {} / {}".format(
+                        iterator + 1, self.sections[1] * self.sections[0]
+                    )
+                )
 
                 tx_start = x * step_in_x + self.src_min_x
 
@@ -129,7 +128,7 @@ class ImageNonOverLapGeoGrid:
                 ty_end = ty_start + step_in_y - 1
 
                 grid_data[(tx_start, ty_start, tx_end, ty_end)] = {
-                    "window": windows[iterator]
+                    "window_position": iterator
                 }
                 iterator += 1
         return grid_data
@@ -271,14 +270,17 @@ class ImageOverLapGeoGrid:
         grid_data = OrderedDict()
 
         iterator = 0
-        windows = Window.image_geo_windows(self.grid_size, self.mesh_size).windows
 
         (buffered_step_in_x, buffered_step_in_y) = self._compute_buffer_step()
         (overlap_step_in_x, overlap_step_in_y) = self._compute_overlap_step()
 
         for y in range(self.sections[1]):
             for x in range(self.sections[0]):
-
+                Printer.print(
+                    "Computing Grid {} / {}".format(
+                        iterator + 1, self.sections[1] * self.sections[0]
+                    )
+                )
                 if (x == self.sections[0] - 1) and self._is_overlap_in_col_direction():
 
                     tx_start = overlap_step_in_x + self.src_min_x
@@ -300,7 +302,7 @@ class ImageOverLapGeoGrid:
                 ty_end = ty_start + buffered_step_in_y - 1
 
                 grid_data[(tx_start, ty_start, tx_end, ty_end)] = {
-                    "window": windows[iterator]
+                    "window_position": iterator
                 }
                 iterator += 1
         return grid_data

@@ -2,6 +2,27 @@ import os
 import cv2
 import rasterio
 
+from sys import stdout
+
+
+class Printer:
+    @staticmethod
+    def print(data):
+        stdout.write("\r\033[1;37m>>\x1b[K" + data.__str__())
+        stdout.flush()
+
+    @staticmethod
+    def print_new_line_pre(data):
+        stdout.write("\n")
+        stdout.write("\r\033[1;37m>>\x1b[K" + data.__str__())
+        stdout.flush()
+
+    @staticmethod
+    def print_new_line_post(data):
+        stdout.write("\r\033[1;37m>>\x1b[K" + data.__str__())
+        stdout.flush()
+        stdout.write("\n")
+
 
 def open_image(path, is_geo_reference=False):
     if is_geo_reference:
