@@ -1,4 +1,6 @@
 # stitchNsplit
+![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)
+![GitHub](https://img.shields.io/github/license/cypherics/ShapeMerge)
 
 A Python Library To Stitch And Split Images for any dimension, computing grid and windows over the specified dimension
 
@@ -135,7 +137,7 @@ mesh in two forms either as a overlapping grid or non overlapping grid.
     grid is adjusted to provide non overlapping grid
     
     When will my Grid Size Change
-    <code>if mesh size % grid size</code> then change grid size
+    <code>if mesh size % grid size</code> then the grid size will be changed
      
 <table>
   <tr>
@@ -190,6 +192,13 @@ image = open_image(r"image_used_starting_point_for_compuation.tif", is_geo_refer
 # This will return overlapping grid if any
 geo_grid_overlap = GeoGrid.mesh_from_geo_transform(grid_geo_transform=image.transform, bounds=image.bounds, grid_size=(2587, 3000, 3))
 ``` 
+
+
+### TODO
+
+- [ ] Compute Mesh with just extent i.e without pixel resolution information
+- [ ] Stitch Geo Referenced Images
+- [ ] Add Check to see incoming coordinates are EPSG:26910
 
 ### NOTE 
 > THE COORDINATES MUST IN EPSG:26910 FOR THE COMPUTATION WORK EFFECTIVELY 
