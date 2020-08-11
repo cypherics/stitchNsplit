@@ -186,9 +186,9 @@ of your image and use the below method, In this case the grid_size will be appro
   </tr>
  </table>
 
-In The above Image the mesh is computed over *mesh size = (10000, 10000)* and *grid size = (2587, 3000)*, 
-the number of grid produced are same for both, the only difference is, the non overlapping mesh has adjusted the
-grid size from original *(2587, 3000)*, to <code>mesh size // (mesh size / grid size)</code> i.e in this case to *(2500, 2500)*
+_In The above Image the mesh is computed over *mesh size = (10000, 10000)* and *grid size = (2587, 3000)*, 
+the number of grid produced are the same for both, the only difference is, the non overlapping mesh has adjusted the
+grid size from original *(2587, 3000)*, to <code>mesh size // (mesh size / grid size)</code> i.e in this case to *(2500, 2500)*_
 
 *_Usage of Grid_:*
 
