@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 from stitch_n_split.utility import make_save_dir, open_image, save_image, Printer
-from stitch_n_split.windows import Window
+from stitch_n_split.windows import get_window
 
 
 class Stitch:
@@ -22,15 +22,15 @@ class Stitch:
         self.src_size = src_size
         self.dst_size = dst_size
 
-        self.stride = Window.image_windows(
+        self.window = get_window(
             stride_size=self.src_size, img_size=self.dst_size
         )
 
     def __len__(self):
-        return len(self.stride.windows)
+        return len(self.window.window_collection)
 
     def __getitem__(self, index):
-        return index, self.stride.windows[index]
+        return index, self.window.window_collection[index]
 
     @staticmethod
     def stitch_image(image: np.ndarray, stitched_image: np.ndarray, window):
@@ -74,8 +74,8 @@ class Stitch:
         :param files:
         :return:
         """
-        for i in range(0, len(files), len(self.stride.windows)):
-            yield files[i : i + len(self.stride.windows)]
+        for i in range(0, len(files), len(self.window.window_collection)):
+            yield files[i : i + len(self.window.window_collection)]
 
     def perform_stitch(self, dir_path: str):
 
@@ -105,7 +105,7 @@ class Stitch:
                 file_path = os.path.join(dir_path, file)
                 image = open_image(file_path)
                 stitched_image = self.stitch_image(
-                    image, stitched_image, self.stride.windows[iterator]
+                    image, stitched_image, self.window.window_collection[iterator]
                 )
             save_image(
                 os.path.join(save_path, "stitched_{}.png".format(i)),

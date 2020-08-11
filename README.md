@@ -23,7 +23,7 @@ Overlapping windows are generated only when required.
   </tr>
   <tr>
     <td><img src="https://user-images.githubusercontent.com/24665570/89780629-73256d80-db2f-11ea-9db5-ee50573d8c6d.png" width=600 height=200></td>
-    <td><img src="https://user-images.githubusercontent.com/24665570/89780554-483b1980-db2f-11ea-8830-d13c728eadcd.png" width=2356 height=200></td>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89780554-483b1980-db2f-11ea-8830-d13c728eadcd.png" width=2000 height=200></td>
   </tr>
  </table>
  
@@ -133,7 +133,7 @@ for file in files:
     save_image("path_to_save", stitched_prediction)
 ``` 
   
-### Grid Computing
+### Mesh Computing
 
 The most common requirement in the world of GIS is to compute mesh, the library explores the idea of serving 
 mesh in two forms either as a overlapping grid or non overlapping grid. 
@@ -157,58 +157,64 @@ mesh in two forms either as a overlapping grid or non overlapping grid.
     
     When will my Grid Size Change
     <code>if mesh size % grid size</code> then the grid size will be changed
-     
+
+#### Mesh Computing From the information present in the geo-referenced image
+
+The size of the mesh and the grid are regular image dimension and the position where the mesh is to be drawn is
+extracted from the geo-reference image.
+
+    mesh_from_geo_transform(mesh_size=(w, h), grid_geo_transform=image.transform, grid_size=(w, h))
+
+This will create a *Mesh* of dimension *(10000, 10000)* which will have *Grid* of dimension *(2587, 3000)*, 
+which will be bounded within the region *image.transform* _i.e min_x and max_y_, the term *image.transform*
+serves as a starting point for Mesh creation
+
+The Geo Reference information, image.transform must contain are its *min_x*, *min_y* and *pixel_resolution*,
+If the pixel information isn't present for the image, check the [pixel resolution](https://blogs.bing.com/maps/2006/02/25/map-control-zoom-levels-gt-resolution)
+of your image and use the below method
+
+    mesh_from_pixel_resolution(pixel_resolution= 0.3,mesh_size=(w, h), grid_geo_transform=image.transform)
+
+In this case the grid_size will be approximated based on the provided pixel resolution and grid_geo_transform 
+
+>
 <table>
   <tr>
     <td>Mesh with Overlapping Grid</td>
      <td>Mesh with Non Overlapping Grid</td>
   </tr>
   <tr>
-    <td><img src="https://user-images.githubusercontent.com/24665570/89773311-49654a00-db21-11ea-9955-f1230d432989.png" width=812 height=400></td>
-    <td><img src="https://user-images.githubusercontent.com/24665570/89773649-f8a22100-db21-11ea-8bcc-deeb46939a51.png" width=812 height=400></td>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89773311-49654a00-db21-11ea-9955-f1230d432989.png" width=812 height=350></td>
+    <td><img src="https://user-images.githubusercontent.com/24665570/89773649-f8a22100-db21-11ea-8bcc-deeb46939a51.png" width=812 height=350></td>
   </tr>
  </table>
 
-In The above Image the mesh is computed over `mesh size = (10000, 10000)` and `grid size = (2587, 3000, 3)`, 
-the number of grid produced are same for both, the only difference is the overlapping mesh has adjusted
-grid size from original, to <code>mesh size // (mesh size / grid size)</code> i.e in this case to `(2500, 2500)`
+In The above Image the mesh is computed over *mesh size = (10000, 10000)* and *grid size = (2587, 3000)*, 
+the number of grid produced are same for both, the only difference is, the non overlapping mesh has adjusted the
+grid size from original *(2587, 3000)*, to <code>mesh size // (mesh size / grid size)</code> i.e in this case to *(2500, 2500)*
 
 *_Usage of Grid_:*
 
-Whenever image geo reference information is available, the the computation of grid could be done in pixel dimension,
-the language that could be related to easily, e.g. create a mesh of `10000 pixel x 10000 pixel` which is equivalent to an image that is represented
-by `10000 width x 10000 height`
-
->*The geo reference information required for mesh creation, is reference coordinates of the image along with the pixel resolution of the image. if the pixel resolution information is not available, use this [link](https://blogs.bing.com/maps/2006/02/25/map-control-zoom-levels-gt-resolution)
- to approximate the pixel resolution based on the zoom level*
-
-_Computing Mesh with user provided grid size and using the image information just as a starting point_:
+_Computing Mesh with user provided grid size and image geo reference_:
 ```python
-from stitch_n_split.split.grid import GeoInfo, mesh_from_geo_transform, mesh_from_pixel_resolution
+from stitch_n_split.split.mesh import mesh_from_geo_transform
 from stitch_n_split.utility import open_image
 
 image = open_image(r"image_used_starting_point_for_compuation.tif", is_geo_reference=True)
 
 # This will return overlapping grid if any
-geo_grid_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, bounds=None, grid_size=(2587, 3000, 3))
+geo_grid_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, grid_bounds=None, grid_size=(2587, 3000, 3))
 
 # if want non overlapping grid set the overlap variable to False
-geo_grid_non_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, bounds=None, grid_size=(2587, 3000, 3), overlap=False)
+geo_grid_non_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, grid_bounds=None, grid_size=(2587, 3000, 3), overlap=False)
 
 for grid in geo_grid_overlap.extent():
     print(grid)
     # perform operation on grid extent
-``` 
-_Compute Mesh with grid size same as input image_:
 
-```python
-from stitch_n_split.split.grid import mesh_from_geo_transform
-from stitch_n_split.utility import open_image
-
-image = open_image(r"image_used_starting_point_for_compuation.tif", is_geo_reference=True)
-
-# This will return overlapping grid if any
-geo_grid_overlap = mesh_from_geo_transform(grid_geo_transform=image.transform, bounds=image.bounds, grid_size=(2587, 3000, 3))
+for grid in geo_grid_non_overlap.extent():
+    print(grid)
+    # perform operation on grid extent
 ``` 
 
 
@@ -216,6 +222,7 @@ geo_grid_overlap = mesh_from_geo_transform(grid_geo_transform=image.transform, b
 
 - [ ] Compute Mesh with just extent i.e without pixel resolution information
 - [ ] Stitch Geo Referenced Images
+- [ ] Calculate the Window Position of the Computed Grid
 - [ ] Add Check to see incoming coordinates are EPSG:26910
 
 ### NOTE 
