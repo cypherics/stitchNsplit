@@ -165,19 +165,16 @@ extracted from the geo-reference image.
 
     mesh_from_geo_transform(mesh_size=(w, h), grid_geo_transform=image.transform, grid_size=(w, h))
 
-This will create a *Mesh* of dimension *(10000, 10000)* which will have *Grid* of dimension *(2587, 3000)*, 
+_This will generate a *Mesh* of dimension *(w, h)* which will have *Grid* of dimension *(w, h)*, 
 which will be bounded within the region *image.transform* _i.e min_x and max_y_, the term *image.transform*
-serves as a starting point for Mesh creation
+serves as a starting point for Mesh generation_
 
-The Geo Reference information, image.transform must contain are its *min_x*, *min_y* and *pixel_resolution*,
+The Geo Reference information that needs to be present in image.transform is *min_x*, *min_y* and *pixel_resolution*,
 If the pixel information isn't present for the image, check the [pixel resolution](https://blogs.bing.com/maps/2006/02/25/map-control-zoom-levels-gt-resolution)
-of your image and use the below method
+of your image and use the below method, In this case the grid_size will be approximated based on the provided pixel resolution and grid_geo_transform 
 
     mesh_from_pixel_resolution(pixel_resolution= 0.3,mesh_size=(w, h), grid_geo_transform=image.transform)
 
-In this case the grid_size will be approximated based on the provided pixel resolution and grid_geo_transform 
-
->
 <table>
   <tr>
     <td>Mesh with Overlapping Grid</td>
