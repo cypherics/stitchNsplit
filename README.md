@@ -214,13 +214,28 @@ for grid in geo_grid_non_overlap.extent():
     # perform operation on grid extent
 ``` 
 
+### Working Coordinate System
+1. EPSG:26910
+2. EPSG:26986
+
+If the coordinate system is other the one specified above reproject the coordinate system, it could be done by
+```python
+from stitch_n_split.utility import open_image
+from stitch_n_split.split.mesh import mesh_from_geo_transform, GeoInfo
+arbitrary_image_coordinate_system = open_image(r"path_to_image", is_geo_reference=True)
+shape = arbitrary_image_coordinate_system.read().shape
+
+mesh = mesh_from_geo_transform(
+     grid_size=(128, 128),
+     mesh_size=(512, 512, 3),
+     grid_geo_transform=GeoInfo.geo_transform_to_26190(shape[2], shape[1], arbitrary_image_coordinate_system.bounds, 
+arbitrary_image_coordinate_system.crs),
+     overlap=True,
+ )
+```
 
 ### TODO
 
 - [ ] Compute Mesh with just extent i.e without pixel resolution information
 - [ ] Stitch Geo Referenced Images
-- [ ] Calculate the Window Position of the Computed Grid
-- [ ] Add Check to see incoming coordinates are EPSG:26910
-
-### NOTE 
-> THE COORDINATES MUST IN EPSG:26910 FOR THE COMPUTATION WORK EFFECTIVELY 
+- [ ] Calculate Window Position of the Computed Grid

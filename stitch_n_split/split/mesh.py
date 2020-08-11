@@ -1,29 +1,15 @@
 import math
+import rasterio
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 
 from affine import Affine
 
+from rasterio.warp import transform_bounds
+
 
 class Mesh:
-    def _compute_max_x(self, scale: float):
-        """
-        Compute the the max_x bounded within complete_size
-        :param scale: how far max_x should grow, when scale is 1, it will grow in amount propotional to complete_size
-        :return:
-        """
-        raise NotImplementedError
-
-    def _compute_min_y(self, scale: float):
-        """
-        Compute the the min_y bounded within complete_size
-        :param scale: how far min_y should grow, when scale is 1, it will grow in amount propotional to complete_size
-        :return:
-        """
-        raise NotImplementedError
-
     def _compute_step(self):
         """
         Compute Step in X and Y direction
@@ -32,23 +18,25 @@ class Mesh:
 
         raise NotImplementedError
 
-    def _step_in_x(self, max_x, normalizer=1):
+    @staticmethod
+    def _step_in_x(bound, normalizer=1):
         """
         Step Size to take in X
-        :param max_x:
+        :param bound:
         :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
         :return:
         """
-        raise NotImplementedError
+        return int(((bound[2] - bound[0]) / normalizer))
 
-    def _step_in_y(self, min_y, normalizer=1):
+    @staticmethod
+    def _step_in_y(bound, normalizer=1):
         """
         Step Size to take in Y
-        :param min_y:
+        :param bound:
         :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
         :return:
         """
-        raise NotImplementedError
+        return int(((bound[-1] - bound[1]) / normalizer))
 
     def extent(self):
         """
@@ -82,58 +70,22 @@ class ImageNonOverLapMesh(Mesh):
     NOTE - The COORDINATES MUST BE IN `EPSG:26910`
     """
 
-    src_min_x: Any
-    src_max_y: Any
-    pixel_res: tuple
-    sections: tuple
+    grid_size: tuple
     mesh_size: tuple
+    sections: tuple
+    transform: Affine
+    mesh_bound: tuple
 
     def _compute_step(self):
         """
         Compute Step in X and Y direction
         :return:
         """
-        max_x = self._compute_max_x(self.mesh_size[0])
-        min_y = self._compute_min_y(self.mesh_size[1])
 
-        step_in_x = self._step_in_x(max_x, self.sections[0])
-        step_in_y = self._step_in_y(min_y, self.sections[1])
+        step_in_x = self._step_in_x(self.mesh_bound, self.sections[0])
+        step_in_y = self._step_in_y(self.mesh_bound, self.sections[1])
 
         return step_in_x, step_in_y
-
-    def _compute_max_x(self, scale: float):
-        """
-        Compute the the max_x bounded within complete_size
-        :param scale: how far max_x should grow, when scale is 1, it will grow in amount propotional to complete_size
-        :return:
-        """
-        return self.src_min_x + self.pixel_res[0] * scale
-
-    def _compute_min_y(self, scale: float):
-        """
-        Compute the the min_y bounded within complete_size
-        :param scale: how far min_y should grow, when scale is 1, it will grow in amount propotional to complete_size
-        :return:
-        """
-        return self.src_max_y + self.pixel_res[1] * scale
-
-    def _step_in_x(self, max_x, normalizer=1):
-        """
-        Step Size to take in X
-        :param max_x:
-        :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
-        :return:
-        """
-        return int(((max_x - self.src_min_x) / normalizer))
-
-    def _step_in_y(self, min_y, normalizer=1):
-        """
-        Step Size to take in Y
-        :param min_y:
-        :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
-        :return:
-        """
-        return int(((self.src_max_y - min_y) / normalizer))
 
     def extent(self):
         """
@@ -145,14 +97,11 @@ class ImageNonOverLapMesh(Mesh):
         (step_in_x, step_in_y) = self._compute_step()
 
         for y in range(self.sections[1]):
-            for x in range(self.sections[0]):
-                tx_start = x * step_in_x + self.src_min_x
 
-                ty_start = (
-                    y * step_in_y
-                    + self.src_max_y
-                    + self.pixel_res[1] * self.mesh_size[1]
-                )
+            for x in range(self.sections[0]):
+                tx_start = x * step_in_x + self.mesh_bound[0]
+
+                ty_start = y * step_in_y + self.mesh_bound[1]
                 tx_end = tx_start + step_in_x - 1
                 ty_end = ty_start + step_in_y - 1
 
@@ -183,12 +132,13 @@ class ImageOverLapMesh(Mesh):
 
     """
 
-    src_min_x: Any
-    src_max_y: Any
-    pixel_res: tuple
-    sections: tuple
     grid_size: tuple
     mesh_size: tuple
+    sections: tuple
+    transform: Affine
+    mesh_bound: tuple
+    overlap_mesh_bound: tuple
+    buffer_mesh_bound: tuple
 
     def _is_overlap_in_col_direction(self):
         """
@@ -213,49 +163,11 @@ class ImageOverLapMesh(Mesh):
 
         :return:
         """
-        buffer_max_x = self._compute_max_x(self.grid_size[0] * self.sections[0])
-        buffer_min_y = self._compute_min_y(self.grid_size[1] * self.sections[1])
 
-        buffered_step_in_x = self._step_in_x(buffer_max_x, self.sections[0])
-        buffered_step_in_y = self._step_in_y(buffer_min_y, self.sections[1])
+        buffered_step_in_x = self._step_in_x(self.buffer_mesh_bound, self.sections[0])
+        buffered_step_in_y = self._step_in_y(self.buffer_mesh_bound, self.sections[1])
 
         return buffered_step_in_x, buffered_step_in_y
-
-    def _compute_max_x(self, scale: float):
-        """
-        Compute the the max_x bounded within complete_size
-        :param scale: how far max_x should grow, when scale is 1, it will grow in amount propotional to complete_size
-        :return:
-        """
-        return self.src_min_x + self.pixel_res[0] * scale
-
-    def _compute_min_y(self, scale: float):
-        """
-        Compute the the min_y bounded within complete_size
-        :param scale: how far min_y should grow, when scale is 1, it will grow in amount propotional to complete_size
-        :return:
-        """
-        return self.src_max_y + self.pixel_res[1] * scale
-
-    def _step_in_x(self, max_x, normalizer=1):
-        """
-        Step Size to take in X
-        :param max_x:
-        :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
-        :return:
-        """
-
-        return int(((max_x - self.src_min_x) / normalizer))
-
-    def _step_in_y(self, min_y, normalizer=1):
-        """
-        Step Size to take in Y
-        :param min_y:
-        :param normalizer: How small the step to take, Larger the value smaller and smaller step it will take
-        :return:
-        """
-
-        return int(((self.src_max_y - min_y) / normalizer))
 
     def _compute_overlap_step(self):
         """
@@ -268,12 +180,9 @@ class ImageOverLapMesh(Mesh):
         overlap_step_in_y = None
 
         if self._is_overlap_in_col_direction():
-
-            over_lap_max_x = self._compute_max_x(self.mesh_size[0] - self.grid_size[0])
-            overlap_step_in_x = self._step_in_x(over_lap_max_x)
+            overlap_step_in_x = self._step_in_x(self.overlap_mesh_bound)
         if self._is_overlap_in_row_direction():
-            overlap_min_y = self._compute_min_y(self.mesh_size[1] - self.grid_size[1])
-            overlap_step_in_y = self._step_in_y(overlap_min_y)
+            overlap_step_in_y = self._step_in_y(self.overlap_mesh_bound)
         return overlap_step_in_x, overlap_step_in_y
 
     def _compute_step(self):
@@ -294,21 +203,13 @@ class ImageOverLapMesh(Mesh):
             for x in range(self.sections[0]):
                 if (x == self.sections[0] - 1) and self._is_overlap_in_col_direction():
 
-                    tx_start = overlap_step_in_x + self.src_min_x
+                    tx_start = overlap_step_in_x + self.mesh_bound[0]
                 else:
-                    tx_start = x * buffered_step_in_x + self.src_min_x
+                    tx_start = x * buffered_step_in_x + self.mesh_bound[0]
                 if y == (self.sections[1] - 1) and self._is_overlap_in_row_direction():
-                    ty_start = (
-                        overlap_step_in_y
-                        + self.src_max_y
-                        + self.pixel_res[1] * self.mesh_size[1]
-                    )
+                    ty_start = overlap_step_in_y + self.mesh_bound[1]
                 else:
-                    ty_start = (
-                        y * buffered_step_in_y
-                        + self.src_max_y
-                        + self.pixel_res[1] * self.mesh_size[1]
-                    )
+                    ty_start = y * buffered_step_in_y + self.mesh_bound[1]
                 tx_end = tx_start + buffered_step_in_x - 1
                 ty_end = ty_start + buffered_step_in_y - 1
 
@@ -317,8 +218,37 @@ class ImageOverLapMesh(Mesh):
 
 class GeoInfo:
     @staticmethod
-    def get_min_x_and_max_y(transform: Affine) -> (float, float):
-        return transform[2], transform[5]
+    def compute_bounds(width, height, transform):
+        """
+        Computes the bounds of w x h given the transform
+        :param width:
+        :param height:
+        :param transform:
+        :return: bounds for w x h , format bounds returned in (w, s, e, n)
+        """
+        bounds = rasterio.transform.array_bounds(height, width, transform)
+        return bounds
+
+    @staticmethod
+    def geo_transform_to_26190(width, height, bounds, crs) -> Affine:
+        west, south, east, north = transform_bounds(
+            crs, {"init": "epsg:26910"}, *bounds
+        )
+        return rasterio.transform.from_bounds(west, south, east, north, width, height)
+
+    @staticmethod
+    def re_project_crs_to_26190(bounds, from_crs) -> (float, float, float, float):
+        west, south, east, north = transform_bounds(
+            from_crs, {"init": "epsg:26910"}, *bounds
+        )
+        return west, south, east, north
+
+    @staticmethod
+    def re_project_from_26190(bounds, to_crs) -> (float, float, float, float):
+        west, south, east, north = transform_bounds(
+            {"init": "epsg:26910"}, to_crs, *bounds
+        )
+        return west, south, east, north
 
     @staticmethod
     def get_pixel_resolution(transform: Affine) -> (float, float):
@@ -351,15 +281,20 @@ class GeoInfo:
 
 
 def mesh_from_geo_transform(
-    grid_size=None, mesh_size=None, grid_geo_transform=None, grid_bounds=None, overlap=True,
+    grid_size=None,
+    mesh_size=None,
+    grid_geo_transform=None,
+    grid_bounds=None,
+    overlap=True,
 ):
     """
 
-    :param overlap:
-    :param grid_bounds:
-    :param grid_size: typical image size
-    :param mesh_size: size to which size of the image is to be extented, typically greater than gris size
-    :param grid_geo_transform: transform of the image which is used for grid size
+    :param overlap: it set to true will find overlapping grid if any
+    :param grid_bounds: initial starting point for grid computation, (w, s, e, n), if grid size
+    is provided, then this argument is optional, this argument is used for computing grid_size
+    :param grid_size: size of grid in pixel dimension (w x h)
+    :param mesh_size: mesh grid in (w x h)
+    :param grid_geo_transform: transform of the initial grid
     :return:
     """
 
@@ -367,7 +302,6 @@ def mesh_from_geo_transform(
         raise ValueError("grid_transform can't be None")
     if mesh_size is None:
         raise ValueError("complete_size can't be None")
-    source_min_x, source_max_y = GeoInfo.get_min_x_and_max_y(grid_geo_transform)
     res = GeoInfo.get_pixel_resolution(grid_geo_transform)
 
     if grid_size is None:
@@ -382,64 +316,37 @@ def mesh_from_geo_transform(
     sections = GeoInfo.compute_num_of_col_and_ros(grid_size, mesh_size)
 
     if overlap:
+        buffer_mesh_bound = GeoInfo.compute_bounds(
+            grid_size[0] * sections[0],
+            grid_size[1] * sections[1],
+            transform=grid_geo_transform,
+        )
+
+        overlap_mesh_bound = GeoInfo.compute_bounds(
+            mesh_size[0] - grid_size[0],
+            mesh_size[1] - grid_size[1],
+            transform=grid_geo_transform,
+        )
+
+        mesh_bound = GeoInfo.compute_bounds(
+            mesh_size[0], mesh_size[1], transform=grid_geo_transform
+        )
+
         grid_data = ImageOverLapMesh(
-            source_min_x, source_max_y, res, sections, grid_size, mesh_size
+            grid_size,
+            mesh_size,
+            sections,
+            grid_geo_transform,
+            mesh_bound,
+            overlap_mesh_bound,
+            buffer_mesh_bound,
         )
     else:
+        mesh_bound = GeoInfo.compute_bounds(
+            mesh_size[0], mesh_size[1], transform=grid_geo_transform
+        )
+
         grid_data = ImageNonOverLapMesh(
-            source_min_x, source_max_y, res, sections, mesh_size
-        )
-    return grid_data
-
-
-def mesh_from_pixel_resolution(
-    pixel_resolution=None,
-    mesh_size=None,
-    grid_geo_transform=None,
-    grid_bounds=None,
-    overlap=True,
-):
-    """
-    https://blogs.bing.com/maps/2006/02/25/map-control-zoom-levels-gt-resolution
-    estimate pixel resolution based on zoom level
-
-    :param overlap:
-    :param grid_bounds:
-    :param pixel_resolution: pixel resolution
-    :param mesh_size: size to which size of the image is to be extented, typically greater than gris size
-    :param grid_geo_transform: transform of the image which is used for grid size
-    :return:
-    """
-
-    if grid_geo_transform is None:
-        raise ValueError("grid_transform can't be None")
-    if mesh_size is None:
-        raise ValueError("complete_size can't be None")
-    if pixel_resolution is None:
-        raise ValueError("Pixel Resolution Can't be None")
-    if type(pixel_resolution) != tuple:
-        raise TypeError("Pixel Resolution Must Be tuple")
-    if len(pixel_resolution) != 2:
-        raise ValueError("Length of Pixel Resolution Must be 2")
-    if grid_bounds is None:
-        raise ValueError("Bounds can't be None")
-    source_min_x, source_max_y = GeoInfo.get_min_x_and_max_y(grid_geo_transform)
-    res = GeoInfo.get_pixel_resolution(grid_geo_transform)
-
-    grid_size = GeoInfo.compute_dimension(grid_bounds, pixel_resolution)
-    if grid_size[0] > mesh_size[0] or grid_size[1] > mesh_size[1]:
-        raise ValueError(
-            "Size to Split Can't Be Greater than Image, Given {},"
-            " Expected less than equal to {}".format(grid_size, mesh_size)
-        )
-    sections = GeoInfo.compute_num_of_col_and_ros(grid_size, mesh_size)
-
-    if overlap:
-        grid_data = ImageOverLapMesh(
-            source_min_x, source_max_y, res, sections, grid_size, mesh_size
-        )
-    else:
-        grid_data = ImageNonOverLapMesh(
-            source_min_x, source_max_y, res, sections, mesh_size
+            grid_size, mesh_size, sections, grid_geo_transform, mesh_bound
         )
     return grid_data
