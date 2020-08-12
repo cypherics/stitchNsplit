@@ -172,7 +172,11 @@ to avoid any overlap
 extracted from the affine transform and conversion of the dimension to reference coordinate system is done with the help
 of pixel resolution present in affine transform
 
-            mesh = mesh_from_geo_transform(mesh_size=(w, h), transform=transfromation_matrix, grid_size=(w, h))
+            mesh = mesh_from_geo_transform(
+            mesh_size=(w, h),
+            transform=transfromation_matrix, 
+            grid_size=(w, h)
+            )
 
         _This will generate a *Mesh* of dimension *(w, h)* which will have *Grid* of dimension *(w, h)*, 
 which will be bounded within the region *transform * (mesh_size)*_
@@ -180,7 +184,12 @@ which will be bounded within the region *transform * (mesh_size)*_
     - When the bounds of mesh are passed, The transformation matrix for the mesh have to be constructed explicitly, the width and
 height are computed internally from the given transformation
     
-            transfromation_matrix = GeoData.get_affine_transform(mesh_bounds[0], mesh_bounds[-1], *GeoInfo.get_pixel_resolution(image.transform)) 
+            transfromation_matrix = GeoData.get_affine_transform(
+            mesh_bounds[0],
+            mesh_bounds[-1],
+            *GeoInfo.get_pixel_resolution(image.transform)
+            ) 
+            
             mesh = mesh_from_geo_transform(
                 grid_size=(w, h),
                 transform=transfromation_matrix,
@@ -191,21 +200,23 @@ height are computed internally from the given transformation
 
     Grid can can accessed by the extent() call which is a Generator for providing individual grid along with the information associated 
     with the grid
-    
-        mesh_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), transform=affine_transform, grid_size=(2587, 3000, 3))
+
+        mesh_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), transform=affine_transform,
+        grid_size=(2587, 3000, 3))
+        
         for grid in mesh.extent():
             print(grid)
             .....
 
-    If the coordinate system available is different than the ones listed [here][#Working Coordinate System], then the coordinate must be reprojected before 
+    If the coordinate system available is different than the ones listed [here](#Working Coordinate System), then the coordinate must be reprojected before 
     mesh computation
         
-             transform=GeoInfo.geo_transform_to_26190(w, h, arbitrary_image_coordinate_system.bounds,
+        transform=GeoInfo.geo_transform_to_26190(w, h, arbitrary_image_coordinate_system.bounds,
              arbitrary_image_coordinate_system.crs),
     
     If width and height of the bounds are not known, to calculate it, use
     
-            GeoInfo.compute_dimension(arbitrary_image_coordinate_system.bounds, pixel_resolution)
+        GeoInfo.compute_dimension(arbitrary_image_coordinate_system.bounds, pixel_resolution)
 
     
 ### Working Coordinate System
