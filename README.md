@@ -28,23 +28,21 @@ Overlapping windows are generated only when required.
  </table>
  
 - ##### Geo Referenced
-    GeoReferenced Imagery have coordinate information stored in them, along with a lot of meta data associated with it.
-This is very much considered while splitting geo referenced imagery, assigning correct reference information to the cut images,
-thus preserving the over all geo reference information 
+    GeoReferenced Imagery have reference coordinate information stored in them.
+This is taken into account while splitting geo referenced imagery, assigning correct reference information to the cut images,
+thus preserving the over all reference information 
     > Geo Reference imagery must be of [tiff](https://en.wikipedia.org/wiki/TIFF) format.
 
 - ##### Non GeoReferenced 
     For Non GeoReferenced the split is straight forward, it gets cropped in to specified dimension
 
-*_Usage_:*
+*_Split Entire Directory_:*
 ```python
 from stitch_n_split.split.images import SplitGeo
 split = SplitGeo(split_size=(124, 267), img_size=(512, 512))
 split.perform_directory_split("dir_path")
 ```
-Instead of Splitting the whole directory, single image split operation can also be performed by using split as iterator,
-where the function iterates over the windows, An Image split can either be performed by providing the *window number* or the *window*
-itself
+Performing Split over individual images can be done by accessing split as an iterator.
 
 *_Split Iterator using window_:*
 ```python
@@ -71,13 +69,10 @@ for win_number, window in split:
 
 ### Stitch 
 
-After a Split Operation is performed, one might require to stitch the images back up, that could be achieved easily by calling
-the <code>stitch_image</code> method
-
-While Performing Stitch if the code encounters an overlapping window, it merges it out seamlessly, without
+While Performing Stitch if there are any overlapping window, those windows are merged seamlessly, without
 hampering the pixel information and image dimension
 
-Every Split image can be associated to the original image by looking at either the window number or the window itself.
+Every Split image can be associated to the original image by the *window number* or the *window* itself.
 
 *_Using stitchNsplit together_:*
 ```python
@@ -99,19 +94,12 @@ save_image("path_to_save", stitched_image)
 ``` 
 > Stitching Of GeoReference is Not Yet Supported
 
-### Potential Use for stitchNsplit
+### stitchNsplit during DeepLearning Inference
 
-Practical use for stitchNsplit is where an image with overly large dimension is available and the task defined by the user
-requires a much smaller dimension, rather than the provided over sized image, for such task, the image must be split and stored in order to accommodate the 
-task requirement, which not be the feasible solution to the problem, the better way would be to split and stitch the image
-on the fly without ever having to store it.
+While dealing with imagery for DNN, the imagery available might be quite large in size _`in multiple of thousand`_ and performing inference on such large dimension might 
+not be a viable option and neither splitting and storing them. *stitchNsplit* can stitch and split the images on the fly, without ever having to store them. 
 
-One use case where stitchNsplit is preferred, is while performing Deep Neural Network Inference. While dealing with
-imagery for DNN, the imagery available might be quite large in size _`in multiple of thousand`_ and performing inference on such large dimension might 
-not be a viable option and neither splitting and storing the image, as one requires high memory and other requires excellent storage capacity.
-The most suitable choice would be to split and stitch the image on the fly. 
-
-*_using split and stitch model prediction_:*
+*_using splitNstitch during Inference_:*
 ```python
 from stitch_n_split.stitch.images import Stitch
 from stitch_n_split.utility import save_image
@@ -158,20 +146,6 @@ mesh in two forms either as a overlapping grid or non overlapping grid.
     When will my Grid Size Change
     <code>if mesh size % grid size</code> then the grid size will be changed
 
-#### Mesh Computing From the information present in the geo-referenced image
-
-The size of the mesh and the grid are regular image dimension and the position where the mesh is to be drawn is
-extracted from the geo-reference image.
-
-    mesh_from_geo_transform(mesh_size=(w, h), grid_geo_transform=image.transform, grid_size=(w, h))
-
-_This will generate a *Mesh* of dimension *(w, h)* which will have *Grid* of dimension *(w, h)*, 
-which will be bounded within the region *image.transform* _i.e min_x and max_y_, the term *image.transform*
-serves as a starting point for Mesh generation_
-
-The Geo Reference information that needs to be present in image.transform is *min_x*, *min_y* and *pixel_resolution*,
-The Geo Reference information for the Mesh will be generated from the mesh size and *min_x*, *min_y* and *pixel_resolution*
-provided by the image
 
 <table>
   <tr>
@@ -183,57 +157,64 @@ provided by the image
     <td><img src="https://user-images.githubusercontent.com/24665570/89773649-f8a22100-db21-11ea-8bcc-deeb46939a51.png" width=812 height=350></td>
   </tr>
  </table>
+ 
+ _*mesh size = (10000, 10000)*,  *grid size = (2587, 3000)* were used for above example_
 
-_In The above Image the mesh is computed over *mesh size = (10000, 10000)* and *grid size = (2587, 3000)*, 
-the number of grid produced are the same for both, the only difference is, the non overlapping mesh has adjusted the
-grid size from original *(2587, 3000)*, to <code>mesh size // (mesh size / grid size)</code> i.e in this case to *(2500, 2500)*_
+The number of grid generated in both cases are the same, the only difference is, the image in the left doesn't compromises the grid size when it encounters
+an overlap, where as the image on the right adjusts its grid size to <code>mesh size // (mesh size / grid size)</code> 
+to avoid any overlap
 
-*_Usage of Grid_:*
 
-_Computing Mesh with user provided grid size and image geo reference_:
-```python
-from stitch_n_split.split.mesh import mesh_from_geo_transform
-from stitch_n_split.utility import open_image
+- #### Mesh Computing From the information present in the geo-referenced image
+    The One mandatory Parameter while computing Mesh is the geo referencing transformation matrix.
 
-image = open_image(r"image_used_starting_point_for_compuation.tif", is_geo_reference=True)
+    - When the size of the mesh and the grid are provided in regular dimension, then the position where the mesh is to be drawn is
+extracted from the affine transform and conversion of the dimension to reference coordinate system is done with the help
+of pixel resolution present in affine transform
 
-# This will return overlapping grid if any
-geo_grid_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, grid_bounds=None, grid_size=(2587, 3000, 3))
+            mesh = mesh_from_geo_transform(mesh_size=(w, h), transform=transfromation_matrix, grid_size=(w, h))
 
-# if want non overlapping grid set the overlap variable to False
-geo_grid_non_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), grid_geo_transform=image.transform, grid_bounds=None, grid_size=(2587, 3000, 3), overlap=False)
+        _This will generate a *Mesh* of dimension *(w, h)* which will have *Grid* of dimension *(w, h)*, 
+which will be bounded within the region *transform * (mesh_size)*_
 
-for grid in geo_grid_overlap.extent():
-    print(grid)
-    # perform operation on grid extent
+    - When the bounds of mesh are passed, The transformation matrix for the mesh have to be constructed explicitly, the width and
+height are computed internally from the given transformation
+    
+            transfromation_matrix = GeoData.get_affine_transform(mesh_bounds[0], mesh_bounds[-1], *GeoInfo.get_pixel_resolution(image.transform)) 
+            mesh = mesh_from_geo_transform(
+                grid_size=(w, h),
+                transform=transfromation_matrix,
+                mesh_bounds=mesh_bounds,
+            )
 
-for grid in geo_grid_non_overlap.extent():
-    print(grid)
-    # perform operation on grid extent
-``` 
+- ### Output
 
+    Grid can can accessed by the extent() call which is a Generator for providing individual grid along with the information associated 
+    with the grid
+    
+        mesh_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), transform=affine_transform, grid_size=(2587, 3000, 3))
+        for grid in mesh.extent():
+            print(grid)
+            .....
+
+    If the coordinate system available is different than the ones listed [here][#Working Coordinate System], then the coordinate must be reprojected before 
+    mesh computation
+        
+             transform=GeoInfo.geo_transform_to_26190(w, h, arbitrary_image_coordinate_system.bounds,
+             arbitrary_image_coordinate_system.crs),
+    
+    If width and height of the bounds are not known, to calculate it, use
+    
+            GeoInfo.compute_dimension(arbitrary_image_coordinate_system.bounds, pixel_resolution)
+
+    
 ### Working Coordinate System
 1. EPSG:26910
-2. EPSG:26986
-
-If the coordinate system is other the one specified above reproject the coordinate system, it could be done by
-```python
-from stitch_n_split.utility import open_image
-from stitch_n_split.split.mesh import mesh_from_geo_transform, GeoInfo
-arbitrary_image_coordinate_system = open_image(r"path_to_image", is_geo_reference=True)
-shape = arbitrary_image_coordinate_system.read().shape
-
-mesh = mesh_from_geo_transform(
-     grid_size=(128, 128),
-     mesh_size=(512, 512, 3),
-     grid_geo_transform=GeoInfo.geo_transform_to_26190(shape[2], shape[1], arbitrary_image_coordinate_system.bounds, 
-arbitrary_image_coordinate_system.crs),
-     overlap=True,
- )
-```
+2. EPSG:26986     
+         
 
 ### TODO
 
-- [ ] Compute Mesh with just extent i.e without pixel resolution information
+- [ ] Compute Mesh with just extent and compute pixel resolution information based on the zoom level
 - [ ] Stitch Geo Referenced Images
 - [ ] Calculate Window Position of the Computed Grid
