@@ -208,7 +208,7 @@ height are computed internally from the given transformation
             print(grid)
             .....
 
-    If the coordinate system available is different than the ones listed [here](#Working Coordinate System), then the coordinate must be reprojected before 
+    If the coordinate system available is different than the ones listed [here](#Working-Coordinate-System), then the coordinate must be reprojected before 
     mesh computation
         
         transform=GeoInfo.geo_transform_to_26190(w, h, arbitrary_image_coordinate_system.bounds,
