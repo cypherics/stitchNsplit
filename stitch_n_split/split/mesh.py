@@ -218,6 +218,18 @@ class ImageOverLapMesh(Mesh):
 
 class GeoInfo:
     @staticmethod
+    def get_affine_transform(min_x: float, max_y: float, pixel_width: float, pixel_height: float) -> Affine:
+        """
+
+        :param min_x:
+        :param max_y:
+        :param pixel_width: width of pixels in the units of its coordinate reference system
+        :param pixel_height: height of pixels in the units of its coordinate reference system
+        :return:
+        """
+        return Affine.translation(min_x, max_y) * Affine.scale(pixel_width, -pixel_height)
+
+    @staticmethod
     def compute_bounds(width, height, transform):
         """
         Computes the bounds of w x h given the transform
@@ -255,9 +267,10 @@ class GeoInfo:
         """
         Pixel Resolution
         :param transform:
-        :return:
+        :return: width and height of pixels in the units of its coordinate reference system extracted from
+        transformation of image
         """
-        return transform[0], transform[4]
+        return transform[0], -transform[4]
 
     @staticmethod
     def compute_num_of_col_and_ros(grid_size: tuple, mesh_size: tuple):
@@ -274,43 +287,50 @@ class GeoInfo:
         return num_col, num_row
 
     @staticmethod
-    def compute_dimension(bounds, res: tuple):
-        output_width = int(math.ceil((bounds[2] - bounds[0]) / res[0]))
-        output_height = int(math.ceil((bounds[3] - bounds[1]) / (-res[1])))
+    def compute_dimension(bounds, pixel_resolution: tuple):
+        """
+
+        :param bounds:
+        :param pixel_resolution: width and height of pixels in the units of its coordinate reference system extracted from
+        transformation of image
+        :return:
+        """
+        output_width = int(math.ceil((bounds[2] - bounds[0]) / pixel_resolution[0]))
+        output_height = int(math.ceil((bounds[3] - bounds[1]) / pixel_resolution[1]))
         return output_width, output_height
 
 
 def mesh_from_geo_transform(
     grid_size=None,
     mesh_size=None,
-    grid_geo_transform=None,
-    grid_bounds=None,
+    transform=None,
+    mesh_bounds=None,
     overlap=True,
 ):
     """
 
+    :param mesh_bounds:
     :param overlap: it set to true will find overlapping grid if any
-    :param grid_bounds: initial starting point for grid computation, (w, s, e, n), if grid size
-    is provided, then this argument is optional, this argument is used for computing grid_size
     :param grid_size: size of grid in pixel dimension (w x h)
     :param mesh_size: mesh grid in (w x h)
-    :param grid_geo_transform: transform of the initial grid
+    :param transform: transform information in the units of its coordinate reference system, required to
+     extract pixel resolution for the specified coordinate system
     :return:
     """
 
-    if grid_geo_transform is None:
+    if transform is None:
         raise ValueError("grid_transform can't be None")
-    if mesh_size is None:
-        raise ValueError("complete_size can't be None")
-    res = GeoInfo.get_pixel_resolution(grid_geo_transform)
 
-    if grid_size is None:
-        if grid_bounds is None:
-            raise ValueError("Bounds can't be None")
-        grid_size = GeoInfo.compute_dimension(grid_bounds, res)
+    pixel_resolution = GeoInfo.get_pixel_resolution(transform)
+
+    if mesh_size is None:
+        if mesh_bounds is None:
+            raise ValueError("Mesh Bounds and Mesh Size Both can't be None")
+        mesh_size = GeoInfo.compute_dimension(mesh_bounds, pixel_resolution)
+
     if grid_size[0] > mesh_size[0] or grid_size[1] > mesh_size[1]:
         raise ValueError(
-            "Size to Split Can't Be Greater than Image, Given {},"
+            "Size Of Grid Can't Be Greater than Mesh, Given {},"
             " Expected less than equal to {}".format(grid_size, mesh_size)
         )
     sections = GeoInfo.compute_num_of_col_and_ros(grid_size, mesh_size)
@@ -319,34 +339,34 @@ def mesh_from_geo_transform(
         buffer_mesh_bound = GeoInfo.compute_bounds(
             grid_size[0] * sections[0],
             grid_size[1] * sections[1],
-            transform=grid_geo_transform,
+            transform=transform,
         )
 
         overlap_mesh_bound = GeoInfo.compute_bounds(
             mesh_size[0] - grid_size[0],
             mesh_size[1] - grid_size[1],
-            transform=grid_geo_transform,
+            transform=transform,
         )
 
         mesh_bound = GeoInfo.compute_bounds(
-            mesh_size[0], mesh_size[1], transform=grid_geo_transform
+            mesh_size[0], mesh_size[1], transform=transform
         )
 
         grid_data = ImageOverLapMesh(
             grid_size,
             mesh_size,
             sections,
-            grid_geo_transform,
+            transform,
             mesh_bound,
             overlap_mesh_bound,
             buffer_mesh_bound,
         )
     else:
         mesh_bound = GeoInfo.compute_bounds(
-            mesh_size[0], mesh_size[1], transform=grid_geo_transform
+            mesh_size[0], mesh_size[1], transform=transform
         )
 
         grid_data = ImageNonOverLapMesh(
-            grid_size, mesh_size, sections, grid_geo_transform, mesh_bound
+            grid_size, mesh_size, sections, transform, mesh_bound
         )
     return grid_data
