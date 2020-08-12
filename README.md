@@ -123,9 +123,6 @@ for file in files:
   
 ### Mesh Computing
 
-The most common requirement in the world of GIS is to compute mesh, the library explores the idea of serving 
-mesh in two forms either as a overlapping grid or non overlapping grid. 
-
 ![stitchNsplit](https://user-images.githubusercontent.com/24665570/89779619-6e5fba00-db2d-11ea-8705-d8ba781f72ea.gif)
 
 - #### OverLapping Grid
@@ -134,19 +131,13 @@ mesh in two forms either as a overlapping grid or non overlapping grid.
     whenever such situation arises, the grid adjusts its position without compromising the grid size, thus generating 
     overlapping grid in the mesh
     
-    How To Check if Mesh will generate overlapping grid
-    <code>if mesh size % grid size</code> then the returned mesh has overlapped grids
-    
 - #### NonOverlapping Grid
     
     No matter what the provided grid size, the goal is to find a grid size which can be evenly distributed over the
     provided mesh size, if the provided sizes presents the possibility of a overlap then the size of the 
     grid is adjusted, to provide non overlapping grid
     
-    When will my Grid Size Change
-    <code>if mesh size % grid size</code> then the grid size will be changed
-
-
+    
 <table>
   <tr>
     <td>Mesh with Overlapping Grid</td>
