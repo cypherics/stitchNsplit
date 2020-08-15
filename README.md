@@ -156,58 +156,58 @@ an overlap, where as the image on the right adjusts its grid size to <code>mesh 
 to avoid any overlap
 
 
-- #### Mesh Computing From the information present in the geo-referenced image
-    The One mandatory Parameter while computing Mesh is the geo referencing transformation matrix.
+#### Mesh Computing From geo-referenced image
+The One mandatory Parameter while computing Mesh is the geo referencing transformation matrix.
 
-    - When the size of the mesh and the grid are provided in regular dimension, then the position where the mesh is to be drawn is
+- When the size of the mesh and the grid are provided in regular dimension, then the position where the mesh is to be drawn is
 extracted from the affine transform and conversion of the dimension to reference coordinate system is done with the help
 of pixel resolution present in affine transform
 
-            mesh = mesh_from_geo_transform(
-            mesh_size=(w, h),
-            transform=transfromation_matrix, 
-            grid_size=(w, h)
-            )
+        mesh = mesh_from_geo_transform(
+        mesh_size=(w, h),
+        transform=transfromation_matrix, 
+        grid_size=(w, h)
+        )
 
-        _This will generate a *Mesh* of dimension *(w, h)* which will have *Grid* of dimension *(w, h)*, 
+    _This will generate a *Mesh* of dimension *(w, h)* which will have *Grid* of dimension *(w, h)*, 
 which will be bounded within the region *transform * (mesh_size)*_
 
-    - When the bounds of mesh are passed, The transformation matrix for the mesh have to be constructed explicitly, the width and
+- When the bounds of mesh are passed, The transformation matrix for the mesh have to be constructed explicitly, the width and
 height are computed internally from the given transformation
-    
-            transfromation_matrix = GeoData.get_affine_transform(
-            mesh_bounds[0],
-            mesh_bounds[-1],
-            *GeoInfo.get_pixel_resolution(image.transform)
-            ) 
-            
-            mesh = mesh_from_geo_transform(
-                grid_size=(w, h),
-                transform=transfromation_matrix,
-                mesh_bounds=mesh_bounds,
-            )
 
-- ### Output
-
-    Grid can can accessed by the extent() call which is a Generator for providing individual grid along with the information associated 
-    with the grid
-
-        mesh_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), transform=affine_transform,
-        grid_size=(2587, 3000, 3))
+        transfromation_matrix = GeoData.get_affine_transform(
+        mesh_bounds[0],
+        mesh_bounds[-1],
+        *GeoInfo.get_pixel_resolution(image.transform)
+        ) 
         
-        for grid in mesh.extent():
-            print(grid)
-            .....
+        mesh = mesh_from_geo_transform(
+            grid_size=(w, h),
+            transform=transfromation_matrix,
+            mesh_bounds=mesh_bounds,
+        )
 
-    If the coordinate system available is different than the ones listed [here](#Working-Coordinate-System), then the coordinate must be reprojected before 
-    mesh computation
-        
-        transform=GeoInfo.geo_transform_to_26190(w, h, arbitrary_image_coordinate_system.bounds,
-             arbitrary_image_coordinate_system.crs),
+### Output
+
+Grid can can accessed by the extent() call which is a Generator for providing individual grid along with the information associated 
+with the grid
+
+    mesh_overlap = mesh_from_geo_transform(mesh_size=(10000, 10000, 3), transform=affine_transform,
+    grid_size=(2587, 3000, 3))
     
-    If width and height of the bounds are not known, to calculate it, use
+    for grid in mesh.extent():
+        print(grid)
+        .....
+
+If the coordinate system available is different than the ones listed [here](#Working-Coordinate-System), then the coordinate must be reprojected before 
+mesh computation
     
-        GeoInfo.compute_dimension(arbitrary_image_coordinate_system.bounds, pixel_resolution)
+    transform=GeoInfo.geo_transform_to_26190(w, h, arbitrary_image_coordinate_system.bounds,
+         arbitrary_image_coordinate_system.crs),
+
+If width and height of the bounds are not known, to calculate it, use
+
+    GeoInfo.compute_dimension(arbitrary_image_coordinate_system.bounds, pixel_resolution)
 
     
 ### Working Coordinate System
@@ -216,7 +216,4 @@ height are computed internally from the given transformation
          
 
 ### TODO
-
-- [ ] Compute Mesh with just extent and compute pixel resolution information based on the zoom level
 - [ ] Stitch Geo Referenced Images
-- [ ] Calculate Window Position of the Computed Grid

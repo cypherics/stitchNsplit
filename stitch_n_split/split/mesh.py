@@ -1,12 +1,14 @@
-import math
-import rasterio
 from dataclasses import dataclass
-
-import numpy as np
-
 from affine import Affine
 
-from rasterio.warp import transform_bounds
+from stitch_n_split.geo_info import (
+    get_window,
+    get_pixel_resolution,
+    compute_dimension,
+    compute_num_of_col_and_ros,
+    compute_bounds,
+    get_mesh_transform,
+)
 
 
 class Mesh:
@@ -38,13 +40,16 @@ class Mesh:
         """
         return int(((bound[-1] - bound[1]) / normalizer))
 
-    def extent(self):
+    def extent(self) -> dict:
         """
         Compute Mesh
 
         :return:
         """
 
+        raise NotImplementedError
+
+    def collate_data(self, extent: tuple) -> dict:
         raise NotImplementedError
 
 
@@ -73,7 +78,7 @@ class ImageNonOverLapMesh(Mesh):
     grid_size: tuple
     mesh_size: tuple
     sections: tuple
-    transform: Affine
+    mesh_transform: Affine
     mesh_bound: tuple
 
     def _compute_step(self):
@@ -87,7 +92,7 @@ class ImageNonOverLapMesh(Mesh):
 
         return step_in_x, step_in_y
 
-    def extent(self):
+    def extent(self) -> dict:
         """
         Compute non overlapping grid bounded within complete_size
 
@@ -105,7 +110,15 @@ class ImageNonOverLapMesh(Mesh):
                 tx_end = tx_start + step_in_x - 1
                 ty_end = ty_start + step_in_y - 1
 
-                yield tx_start, ty_start, tx_end, ty_end
+                yield self.collate_data((tx_start, ty_start, tx_end, ty_end))
+
+    def collate_data(self, extent: tuple) -> dict:
+        data = {
+            "extent": extent,
+            "window": get_window(extent, self.mesh_transform),
+            "mesh_size": self.mesh_size,
+        }
+        return data
 
 
 @dataclass
@@ -135,7 +148,7 @@ class ImageOverLapMesh(Mesh):
     grid_size: tuple
     mesh_size: tuple
     sections: tuple
-    transform: Affine
+    mesh_transform: Affine
     mesh_bound: tuple
     overlap_mesh_bound: tuple
     buffer_mesh_bound: tuple
@@ -188,7 +201,7 @@ class ImageOverLapMesh(Mesh):
     def _compute_step(self):
         return self._compute_buffer_step(), self._compute_overlap_step()
 
-    def extent(self):
+    def extent(self) -> dict:
         """
         Compute Overlapping Grid
         :return:
@@ -213,99 +226,19 @@ class ImageOverLapMesh(Mesh):
                 tx_end = tx_start + buffered_step_in_x - 1
                 ty_end = ty_start + buffered_step_in_y - 1
 
-                yield tx_start, ty_start, tx_end, ty_end
+                yield self.collate_data((tx_start, ty_start, tx_end, ty_end))
 
-
-class GeoInfo:
-    @staticmethod
-    def get_affine_transform(min_x: float, max_y: float, pixel_width: float, pixel_height: float) -> Affine:
-        """
-
-        :param min_x:
-        :param max_y:
-        :param pixel_width: width of pixels in the units of its coordinate reference system
-        :param pixel_height: height of pixels in the units of its coordinate reference system
-        :return:
-        """
-        return Affine.translation(min_x, max_y) * Affine.scale(pixel_width, -pixel_height)
-
-    @staticmethod
-    def compute_bounds(width, height, transform):
-        """
-        Computes the bounds of w x h given the transform
-        :param width:
-        :param height:
-        :param transform:
-        :return: bounds for w x h , format bounds returned in (w, s, e, n)
-        """
-        bounds = rasterio.transform.array_bounds(height, width, transform)
-        return bounds
-
-    @staticmethod
-    def geo_transform_to_26190(width, height, bounds, crs) -> Affine:
-        west, south, east, north = transform_bounds(
-            crs, {"init": "epsg:26910"}, *bounds
-        )
-        return rasterio.transform.from_bounds(west, south, east, north, width, height)
-
-    @staticmethod
-    def re_project_crs_to_26190(bounds, from_crs) -> (float, float, float, float):
-        west, south, east, north = transform_bounds(
-            from_crs, {"init": "epsg:26910"}, *bounds
-        )
-        return west, south, east, north
-
-    @staticmethod
-    def re_project_from_26190(bounds, to_crs) -> (float, float, float, float):
-        west, south, east, north = transform_bounds(
-            {"init": "epsg:26910"}, to_crs, *bounds
-        )
-        return west, south, east, north
-
-    @staticmethod
-    def get_pixel_resolution(transform: Affine) -> (float, float):
-        """
-        Pixel Resolution
-        :param transform:
-        :return: width and height of pixels in the units of its coordinate reference system extracted from
-        transformation of image
-        """
-        return transform[0], -transform[4]
-
-    @staticmethod
-    def compute_num_of_col_and_ros(grid_size: tuple, mesh_size: tuple):
-        """
-        num_col grids will fit in x direction
-        num_row grids will fit in Y direction
-
-        Computes How many Number of grids to draw
-        :return: number of grid in x direction, number of grid in y direction
-        """
-        num_col = int(np.ceil(mesh_size[0] / grid_size[0]))
-        num_row = int(np.ceil(mesh_size[1] / grid_size[1]))
-
-        return num_col, num_row
-
-    @staticmethod
-    def compute_dimension(bounds, pixel_resolution: tuple):
-        """
-
-        :param bounds:
-        :param pixel_resolution: width and height of pixels in the units of its coordinate reference system extracted from
-        transformation of image
-        :return:
-        """
-        output_width = int(math.ceil((bounds[2] - bounds[0]) / pixel_resolution[0]))
-        output_height = int(math.ceil((bounds[3] - bounds[1]) / pixel_resolution[1]))
-        return output_width, output_height
+    def collate_data(self, extent: tuple) -> dict:
+        data = {
+            "extent": extent,
+            "window": get_window(extent, self.mesh_transform),
+            "mesh_size": self.mesh_size,
+        }
+        return data
 
 
 def mesh_from_geo_transform(
-    grid_size=None,
-    mesh_size=None,
-    transform=None,
-    mesh_bounds=None,
-    overlap=True,
+    grid_size=None, mesh_size=None, transform=None, mesh_bounds=None, overlap=True,
 ):
     """
 
@@ -320,53 +253,49 @@ def mesh_from_geo_transform(
 
     if transform is None:
         raise ValueError("grid_transform can't be None")
-
-    pixel_resolution = GeoInfo.get_pixel_resolution(transform)
+    pixel_resolution = get_pixel_resolution(transform)
 
     if mesh_size is None:
         if mesh_bounds is None:
             raise ValueError("Mesh Bounds and Mesh Size Both can't be None")
-        mesh_size = GeoInfo.compute_dimension(mesh_bounds, pixel_resolution)
-
+        mesh_size = compute_dimension(mesh_bounds, pixel_resolution)
     if grid_size[0] > mesh_size[0] or grid_size[1] > mesh_size[1]:
         raise ValueError(
             "Size Of Grid Can't Be Greater than Mesh, Given {},"
             " Expected less than equal to {}".format(grid_size, mesh_size)
         )
-    sections = GeoInfo.compute_num_of_col_and_ros(grid_size, mesh_size)
+    sections = compute_num_of_col_and_ros(grid_size, mesh_size)
 
     if overlap:
-        buffer_mesh_bound = GeoInfo.compute_bounds(
-            grid_size[0] * sections[0],
-            grid_size[1] * sections[1],
-            transform=transform,
+        buffer_mesh_bound = compute_bounds(
+            grid_size[0] * sections[0], grid_size[1] * sections[1], transform=transform,
         )
 
-        overlap_mesh_bound = GeoInfo.compute_bounds(
+        overlap_mesh_bound = compute_bounds(
             mesh_size[0] - grid_size[0],
             mesh_size[1] - grid_size[1],
             transform=transform,
         )
 
-        mesh_bound = GeoInfo.compute_bounds(
-            mesh_size[0], mesh_size[1], transform=transform
-        )
+        mesh_bound = compute_bounds(mesh_size[0], mesh_size[1], transform=transform)
+
+        mesh_transform = get_mesh_transform(mesh_size[0], mesh_size[1], transform)
 
         grid_data = ImageOverLapMesh(
             grid_size,
             mesh_size,
             sections,
-            transform,
+            mesh_transform,
             mesh_bound,
             overlap_mesh_bound,
             buffer_mesh_bound,
         )
     else:
-        mesh_bound = GeoInfo.compute_bounds(
-            mesh_size[0], mesh_size[1], transform=transform
-        )
+        mesh_bound = compute_bounds(mesh_size[0], mesh_size[1], transform=transform)
+
+        mesh_transform = get_mesh_transform(mesh_size[0], mesh_size[1], transform)
 
         grid_data = ImageNonOverLapMesh(
-            grid_size, mesh_size, sections, transform, mesh_bound
+            grid_size, mesh_size, sections, mesh_transform, mesh_bound
         )
     return grid_data
