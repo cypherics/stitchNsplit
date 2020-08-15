@@ -175,10 +175,10 @@ which will be bounded within the region *transform * (mesh_size)*_
 - When the bounds of mesh are passed, The transformation matrix for the mesh have to be constructed explicitly, the width and
 height are computed internally from the given transformation
 
-        transfromation_matrix = GeoData.get_affine_transform(
+        transfromation_matrix = get_affine_transform(
         mesh_bounds[0],
         mesh_bounds[-1],
-        *GeoInfo.get_pixel_resolution(image.transform)
+        *get_pixel_resolution(image.transform)
         ) 
         
         mesh = mesh_from_geo_transform(
@@ -202,12 +202,12 @@ with the grid
 If the coordinate system available is different than the ones listed [here](#Working-Coordinate-System), then the coordinate must be reprojected before 
 mesh computation
     
-    transform=GeoInfo.geo_transform_to_26190(w, h, arbitrary_image_coordinate_system.bounds,
+    transform=geo_transform_to_26190(w, h, arbitrary_image_coordinate_system.bounds,
          arbitrary_image_coordinate_system.crs),
 
 If width and height of the bounds are not known, to calculate it, use
 
-    GeoInfo.compute_dimension(arbitrary_image_coordinate_system.bounds, pixel_resolution)
+    compute_dimension(arbitrary_image_coordinate_system.bounds, pixel_resolution)
 
     
 ### Working Coordinate System
