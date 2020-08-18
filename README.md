@@ -1,6 +1,7 @@
 # stitchNsplit
-![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=102)
 ![GitHub](https://img.shields.io/github/license/cypherics/ShapeMerge)
+![Python](https://img.shields.io/badge/python-v3.6+-blue.svg)
+![Contributions welcome](https://img.shields.io/badge/contributions-welcome-orange.svg)
 
 A Python Library To Stitch And Split Images for any dimension, computing grid and windows over the specified dimension
 
