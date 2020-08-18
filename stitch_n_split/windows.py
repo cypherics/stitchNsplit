@@ -55,7 +55,7 @@ class Window:
                     cropped_windows.append(
                         ((row, row + split_row), (col, col + split_col))
                     )
-                iter_row = 1
+            iter_row = 1
         return cropped_windows
 
 
