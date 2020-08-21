@@ -94,33 +94,6 @@ for win_number, window in split:
 save_image("path_to_save", stitched_image)
 ``` 
 > Stitching Of GeoReference is Not Yet Supported
-
-### stitchNsplit during DeepLearning Inference
-
-While dealing with imagery for DNN, the imagery available might be quite large in size _`in multiple of thousand`_ and performing inference on such large dimension might 
-not be a viable option and neither splitting and storing them. *stitchNsplit* can stitch and split the images on the fly, without ever having to store them. 
-
-*_using splitNstitch during Inference_:*
-```python
-from stitch_n_split.stitch.images import Stitch
-from stitch_n_split.utility import save_image
-from stitch_n_split.split.images import SplitNonGeo
-from stitch_n_split.utility import open_image
-import numpy as np
-
-split = SplitNonGeo(split_size=(124, 267), img_size=(512, 512, 3))
-for file in files:
-    image = open_image(file)
-    stitched_prediction = np.zeros(image.shape)
-    # image.shape == (512, 512, 3)
-    for win_number, window in split:
-        split_image = split.window_split(image, win_number)
-        # perform inference ....
-        prediction = model.predict(split_image)
-        stitched_prediction = Stitch.stitch_image(prediction, stitched_prediction, window)
-        # keep on stitching the prediction
-    save_image("path_to_save", stitched_prediction)
-``` 
   
 ### Mesh Computing
 
