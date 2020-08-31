@@ -5,12 +5,12 @@
 
 A Python Library To Stitch And Split Images for any dimension, computing grid and windows over the specified dimension
 
-### Installation
+## Installation
 
     pip install git+https://github.com/cypherics/stitchNsplit.git#egg=stitchNsplit
     
     
-### Split
+## Split
 
 Split Operation can be performed on two sets of Imagery, <b>Geo Referenced</b> and <b>Non Geo Referenced</b>
 The Windows formed for the split operation are adjusted based on the split_size and img_size, whenever 
@@ -56,19 +56,8 @@ for win_number, window in split:
     split_image = split.window_split(image, window)
     # perform operation ....
 ```
-*_Split Iterator using window number_:*
-```python
-from stitch_n_split.split.images import SplitGeo
-from stitch_n_split.utility import open_image
 
-split = SplitGeo(split_size=(124, 267), img_size=(512, 512))
-image = open_image("img_path", is_geo_reference=True)
-for win_number, window in split:
-    split_image = split.window_split(image, win_number)
-    # perform operation ....
-```
-
-### Stitch 
+## Stitch 
 
 While Performing Stitch if there are any overlapping window, those windows are merged seamlessly, without
 hampering the pixel information and image dimension
@@ -93,9 +82,8 @@ for win_number, window in split:
     stitched_image = Stitch.stitch_image(split_image, stitched_image, window)
 save_image("path_to_save", stitched_image)
 ``` 
-> Stitching Of GeoReference is Not Yet Supported
   
-### Mesh Computing
+## Mesh Computing
 
 ![stitchNsplit](https://user-images.githubusercontent.com/24665570/89779619-6e5fba00-db2d-11ea-8705-d8ba781f72ea.gif)
 
@@ -161,7 +149,7 @@ height are computed internally from the given transformation
             mesh_bounds=mesh_bounds,
         )
 
-### Output
+## Output
 
 Grid can can accessed by the extent() call which is a Generator for providing individual grid along with the information associated 
 with the grid
@@ -184,10 +172,7 @@ If width and height of the bounds are not known, to calculate it, use
     compute_dimension(arbitrary_image_coordinate_system.bounds, pixel_resolution)
 
     
-### Working Coordinate System
+## Working Coordinate System
 1. EPSG:26910
 2. EPSG:26986     
-         
 
-### TODO
-- [ ] Stitch Geo Referenced Images

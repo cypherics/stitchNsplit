@@ -4,7 +4,7 @@ import time
 
 import rasterio
 
-from stitch_n_split.windows import get_window
+from fragment.fragment import ImageFragment, Fragment
 from stitch_n_split.utility import make_save_dir, open_image, save_image, Printer
 
 
@@ -23,13 +23,13 @@ class Split:
         self.split_size = split_size
         self.img_size = img_size
 
-        self.window = get_window(self.split_size, self.img_size)
+        self.image_fragment = ImageFragment.get_image_fragment(fragment_size=self.split_size, org_size=self.img_size)
 
     def __len__(self):
-        return len(self.window.window_collection)
+        return len(self.image_fragment.collection)
 
     def __getitem__(self, index):
-        return index, self.window.window_collection[index]
+        return index, self.image_fragment.collection[index]
 
     def perform_directory_split(self, dir_path: str):
         """
@@ -47,29 +47,17 @@ class Split:
         """
         raise NotImplementedError
 
-    def _extract_data(self, image, window):
+    def _extract_data(self, image, fragment: Fragment):
         """
 
         :param image:
-        :param window:
+        :param fragment:
         :return:
         """
         raise NotImplementedError
 
-    def win_number_split(self, image, win_number: int):
-        if type(win_number) != int:
-            raise TypeError("Given {}, Expected {}".format(type(win_number), "Int"))
-        if win_number < 0 or win_number >= len(self.window.window_collection):
-            raise ValueError(
-                "Given {}, Expected In between {} to {}".format(
-                    win_number, 0, len(self.window.window_collection)
-                )
-            )
-        window = self.window.window_collection[win_number]
-        return self._extract_data(image, window)
-
-    def window_split(self, image, window):
-        return self._extract_data(image, window)
+    def window_split(self, image: np.ndarray, fragment: Fragment):
+        return self._extract_data(image, fragment)
 
 
 class SplitNonGeo(Split):
@@ -110,22 +98,22 @@ class SplitNonGeo(Split):
         :return:
         """
         for index, tiff_window in zip(
-            range(0, len(self.window.window_collection)), self.window.window_collection
+            range(0, len(self.image_fragment.collection)), self.image_fragment.collection
         ):
             split_image = self._extract_data(image, tiff_window)
             split_path = image_save_path.split(".")
             save_path = "{}_{}.{}".format(split_path[0], index, split_path[-1])
             save_image(save_path, split_image)
 
-    def _extract_data(self, image: np.ndarray, window: tuple) -> np.ndarray:
+    def _extract_data(self, image: np.ndarray, fragment: Fragment) -> np.ndarray:
         """
 
         :param image:
-        :param window:
+        :param fragment:
         :return:
         """
 
-        return image[window[0][0] : window[0][1], window[1][0] : window[1][1]]
+        return fragment.get_fragment_data(image)
 
 
 class SplitGeo(Split):
@@ -164,7 +152,7 @@ class SplitGeo(Split):
         :return:
         """
         for index, tiff_window in zip(
-            range(0, len(self.window.window_collection)), self.window.window_collection
+            range(0, len(self.image_fragment.collection)), self.image_fragment.collection
         ):
             split_image, kwargs_split_image = self._extract_data(image, tiff_window)
             split_path = image_save_path.split(".")
@@ -172,24 +160,24 @@ class SplitGeo(Split):
             save_image(save_path, split_image, True, **kwargs_split_image)
 
     def _extract_data(
-        self, image: rasterio.io.DatasetReader, window
+        self, image: rasterio.io.DatasetReader, fragment: Fragment
     ) -> (np.ndarray, dict):
         """
         The operation of spiting the images and copying its geo reference is carried out using a sliding window
-        approach, where window specifies which part of the original image is to be processed
+        approach, where fragment specifies which part of the original image is to be processed
 
         :param image:
-        :param window: the split1 window size
+        :param fragment: the split1 size
         :return:
         """
-        split_image = image.read(window=window)
+        split_image = image.read(window=fragment.position)
 
         kwargs_split_image = image.meta.copy()
         kwargs_split_image.update(
             {
                 "height": self.split_size[1],
                 "width": self.split_size[0],
-                "transform": image.window_transform(window),
+                "transform": image.window_transform(fragment.position),
             }
         )
 

@@ -7,11 +7,12 @@ install_requires = [
     "opencv-python >= 4.1.1",
     "affine == 2.3.0",
     "numpy == 1.19.1",
+    "fragment @ git+https://github.com/fuzailpalnak/fragment/#egg=fragment",
 ]
 
 setup(
     name="stitch_n_split",
-    version="0.0.4",
+    version="0.0.9",
     author="Fuzail Palnak",
     author_email="fuzailpalnak@gmail.com",
     description="Library for stitching and spliting",

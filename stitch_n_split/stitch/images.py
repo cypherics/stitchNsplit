@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 from stitch_n_split.utility import make_save_dir, open_image, save_image, Printer
-from stitch_n_split.windows import get_window
+from fragment.fragment import Fragment, ImageFragment
 
 
 class Stitch:
@@ -22,60 +22,35 @@ class Stitch:
         self.src_size = src_size
         self.dst_size = dst_size
 
-        self.window = get_window(
-            stride_size=self.src_size, img_size=self.dst_size
-        )
+        self.image_fragment = ImageFragment.get_image_fragment(fragment_size=self.src_size, org_size=self.dst_size)
 
     def __len__(self):
-        return len(self.window.window_collection)
+        return len(self.image_fragment.collection)
 
     def __getitem__(self, index):
-        return index, self.window.window_collection[index]
+        return index, self.image_fragment.collection[index]
 
     @staticmethod
-    def stitch_image(image: np.ndarray, stitched_image: np.ndarray, window):
+    def stitch_image(image: np.ndarray, stitched_image: np.ndarray, fragment: Fragment):
         """
 
+        :param fragment:
         :param image:
         :param stitched_image:
-        :param window:
         :return:
         """
 
-        part_1_x = window[0][0]
-        part_1_y = window[0][1]
-        part_2_x = window[1][0]
-        part_2_y = window[1][1]
-
-        cropped_image = stitched_image[part_1_x:part_1_y, part_2_x:part_2_y]
-
-        image = cropped_image + image
-
-        if np.any(cropped_image):
-            intersecting_prediction_elements = np.zeros(cropped_image.shape)
-            intersecting_prediction_elements[cropped_image > 0] = 1
-
-            non_intersecting_prediction_elements = 1 - intersecting_prediction_elements
-
-            intersected_prediction = image * intersecting_prediction_elements
-            aggregate_prediction = intersected_prediction / 2
-
-            non_intersected_prediction = np.multiply(
-                non_intersecting_prediction_elements, image
-            )
-            image = aggregate_prediction + non_intersected_prediction
-        stitched_image[part_1_x:part_1_y, part_2_x:part_2_y] = image
-        return stitched_image
+        return fragment.transfer_fragment(transfer_from=image, transfer_to=stitched_image)
 
     def stitch_generator(self, files):
         """
-        A generator to pass chunks of files equal to len of windows
+        A generator to pass chunks of files equal to len of fragments
 
         :param files:
         :return:
         """
-        for i in range(0, len(files), len(self.window.window_collection)):
-            yield files[i : i + len(self.window.window_collection)]
+        for i in range(0, len(files), len(self.image_fragment.collection)):
+            yield files[i : i + len(self.image_fragment.collection)]
 
     def perform_stitch(self, dir_path: str):
 
@@ -105,7 +80,7 @@ class Stitch:
                 file_path = os.path.join(dir_path, file)
                 image = open_image(file_path)
                 stitched_image = self.stitch_image(
-                    image, stitched_image, self.window.window_collection[iterator]
+                    image, stitched_image, self.image_fragment.collection[iterator]
                 )
             save_image(
                 os.path.join(save_path, "stitched_{}.png".format(i)),
