@@ -11,8 +11,8 @@ class Stitch:
     def __init__(self, src_size: tuple, dst_size: tuple):
         """
 
-        :param src_size: tuple(W x H X B), Size to stitch the Image in, typically smaller than img_size
-        :param dst_size: tuple(W x H X B), Size on which image is going to be stitched operation is to be performed
+        :param src_size: tuple(H x W X B), Size to stitch the Image in, typically smaller than img_size
+        :param dst_size: tuple(H x W X B), Size on which image is going to be stitched operation is to be performed
         """
         if src_size[0] > dst_size[0] or src_size[1] > dst_size[1]:
             raise ValueError(
@@ -22,7 +22,7 @@ class Stitch:
         self.src_size = src_size
         self.dst_size = dst_size
 
-        self.image_fragment = ImageFragment.get_image_fragment(fragment_size=self.src_size, org_size=self.dst_size)
+        self.image_fragment = ImageFragment.image_fragment_3d(fragment_size=self.src_size, org_size=self.dst_size)
 
     def __len__(self):
         return len(self.image_fragment.collection)

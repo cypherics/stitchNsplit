@@ -12,8 +12,8 @@ class Split:
     def __init__(self, split_size: tuple, img_size: tuple):
         """
 
-        :param split_size: tuple(W x H X B), Size to split1 the Image in, typically smaller than img_size
-        :param img_size: tuple(W x H X B), Size on which split1 operation is to be performed
+        :param split_size: tuple(H x W X B), Size to split1 the Image in, typically smaller than img_size
+        :param img_size: tuple(H x W X B), Size on which split1 operation is to be performed
         """
         if split_size[0] > img_size[0] or split_size[1] > img_size[1]:
             raise ValueError(
@@ -23,7 +23,7 @@ class Split:
         self.split_size = split_size
         self.img_size = img_size
 
-        self.image_fragment = ImageFragment.get_image_fragment(fragment_size=self.split_size, org_size=self.img_size)
+        self.image_fragment = ImageFragment.image_fragment_3d(fragment_size=self.split_size, org_size=self.img_size)
 
     def __len__(self):
         return len(self.image_fragment.collection)
@@ -64,8 +64,8 @@ class SplitNonGeo(Split):
     def __init__(self, split_size: tuple, img_size: tuple):
         """
 
-        :param split_size: tuple(W x H), Size to split1 the Image in, typically smaller than img_size
-        :param img_size: tuple(W x H X 3), Size on which split1 operation is to be performed
+        :param split_size: tuple(H x W), Size to split1 the Image in, typically smaller than img_size
+        :param img_size: tuple(H x W X 3), Size on which split1 operation is to be performed
         """
         super().__init__(split_size, img_size)
 
@@ -120,8 +120,8 @@ class SplitGeo(Split):
     def __init__(self, split_size: tuple, img_size: tuple):
         """
 
-        :param split_size: tuple(W x H), Size to split1 the Image in, typically smaller than img_size
-        :param img_size: tuple(W x H X 3), Size on which split1 operation is to be performed
+        :param split_size: tuple(H x W), Size to split1 the Image in, typically smaller than img_size
+        :param img_size: tuple(H x W X 3), Size on which split1 operation is to be performed
         """
         super().__init__(split_size, img_size)
 
@@ -175,8 +175,8 @@ class SplitGeo(Split):
         kwargs_split_image = image.meta.copy()
         kwargs_split_image.update(
             {
-                "height": self.split_size[1],
-                "width": self.split_size[0],
+                "height": self.split_size[0],
+                "width": self.split_size[1],
                 "transform": image.window_transform(fragment.position),
             }
         )
