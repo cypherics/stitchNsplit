@@ -7,7 +7,7 @@ A Python Library To Stitch And Split Images for any dimension, computing grid an
 
 ## Installation
 
-    pip install git+https://github.com/cypherics/stitchNsplit.git#egg=stitchNsplit
+    pip install stitch_n_split
     
     
 ## Split

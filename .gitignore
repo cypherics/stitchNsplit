@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 .idea/
 d.py
+stitch_n_split.egg-info/

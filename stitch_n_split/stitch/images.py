@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 from stitch_n_split.utility import make_save_dir, open_image, save_image, Printer
-from fragment.fragment import Fragment, ImageFragment
+from image_fragment.fragment import Fragment, ImageFragment
 
 
 class Stitch:

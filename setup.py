@@ -7,7 +7,7 @@ install_requires = [
     "opencv-python >= 4.1.1",
     "affine == 2.3.0",
     "numpy == 1.19.1",
-    "fragment @ git+https://github.com/fuzailpalnak/fragment/#egg=fragment",
+    "image-fragment==0.2.2",
 ]
 
 setup(

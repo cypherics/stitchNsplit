@@ -4,7 +4,7 @@ import time
 
 import rasterio
 
-from fragment.fragment import ImageFragment, Fragment
+from image_fragment.fragment import ImageFragment, Fragment
 from stitch_n_split.utility import make_save_dir, open_image, save_image, Printer
 
 
