@@ -7,7 +7,7 @@ A Python Library To Stitch And Split Images for any dimension, computing grid an
 
 ## Installation
 
-    pip install stitch_n_split
+    pip install stitch-n-split
     
     
 - Installing rasterio dependency using conda
