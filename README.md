@@ -2,6 +2,7 @@
 ![GitHub](https://img.shields.io/github/license/cypherics/ShapeMerge)
 ![Python](https://img.shields.io/badge/python-v3.6+-blue.svg)
 ![Contributions welcome](https://img.shields.io/badge/contributions-welcome-orange.svg)
+![Downloads](https://pepy.tech/badge/stitch-n-split)
 
 A Python Library To Stitch And Split Images for any dimension, computing grid and windows over the specified dimension
 
